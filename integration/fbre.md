@@ -354,6 +354,30 @@ Each `<FBRE />` creates its own isolated store. No conflicts:
 <FBRE flow={flowB} onFlowComplete={handleB} />
 ```
 
+### Mounting Inside a Shadow Root
+
+Supported as of 3.4.1. FBRE declares no `:root`, `html`, `body`, or `*` rules and injects no styles of its own, so it carries nothing that depends on being in the main document.
+
+The one thing the parent must do differently is **deliver the CSS into the root**. `import "@sonata-innovations/fiber-fbre/styles"` puts a stylesheet in `<head>`, which a shadow root does not inherit:
+
+```tsx
+// The `./styles` subpath — the exports map exposes only "." and "./styles",
+// so a deep `dist/…` import will not resolve.
+import css from "@sonata-innovations/fiber-fbre/styles?inline";
+
+const sheet = new CSSStyleSheet();
+sheet.replaceSync(css);              // build once, share across every root
+root.adoptedStyleSheets = [sheet];   // root = element.attachShadow({ mode: "open" })
+```
+
+Everything else works unchanged:
+
+- **Theming.** All `--fbre-*` tokens are declared on `.fbre-container`, which FBRE renders itself — so the override recipe in the [Theming Guide](../features/fbre-theming.md) applies verbatim inside a root. Nothing is read from `:root`.
+- **Overlays.** Dropdowns and the date/colour pickers are positioned in-tree. The tooltip is the only portal, and it targets the nearest `.fbre-container`, so it stays inside the root.
+- **Outside-click and Enter-to-advance** use `composedPath()`, so they survive event retargeting. Before 3.4.1 they did not: a `mousedown` inside an open panel read as a click outside it and closed it, which broke multi-select, the date picker's two-step range, and the colour picker's drag.
+
+One behavioural difference to be aware of: overlay flip/shift detection walks up for a scrolling ancestor and cannot see past the shadow boundary, so it falls back to viewport bounds. Overlays still open and remain usable; placement near the edge of a scrolling container outside the root is just less precise.
+
 ### Reading Flow Data Mid-Flow
 
 ```tsx
@@ -372,6 +396,7 @@ const checkProgress = () => {
 
 **MUST:**
 - Import styles separately (`import "@sonata-innovations/fiber-fbre/styles"`) — styles are not bundled with the JS
+- Deliver that CSS into the shadow root when mounting inside one — a `<head>` stylesheet does not reach it (see [Mounting Inside a Shadow Root](#mounting-inside-a-shadow-root))
 - Match UUIDs exactly when pre-populating `FlowData`
 
 **DO NOT:**
