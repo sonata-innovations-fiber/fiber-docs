@@ -136,7 +136,7 @@
 
     "ConfirmationConfig": {
       "type": "object",
-      "description": "Terminal 'thank you' / confirmation screen shown after the flow is submitted. Presentation-only, so it lives on the config rather than as a Screen. Renders only when 'show' is not false and 'title' or 'body' has content (or the parent supplies an override via the onFlowComplete return value).",
+      "description": "Terminal 'thank you' / confirmation screen shown after the flow is submitted. Presentation-only, so it lives on the config rather than as a Screen. In local and remote modes it renders only when 'show' is not false and 'title' or 'body' has content (or the parent supplies an override via the onFlowComplete return value); server-driven mode falls back to a generic 'Thank you' when nothing is configured. An explicit 'show': false renders nothing in every mode.",
       "properties": {
         "show": {
           "type": "boolean",

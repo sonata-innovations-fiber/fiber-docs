@@ -112,7 +112,7 @@ Each style has a default stepper visual (see `stepperStyle`). When switching for
 
 ### ConfirmationConfig
 
-A terminal "thank you" screen shown after the flow is submitted (once `onFlowComplete` resolves). It is presentation-only — not a data-collection `Screen` — so it lives on the config. The screen renders only when `show` is not `false` **and** `title` or `body` has content. When shown, it replaces the final screen and the navigation controls/stepper are hidden.
+A terminal "thank you" screen shown after the flow is submitted (once `onFlowComplete` resolves). It is presentation-only — not a data-collection `Screen` — so it lives on the config. In local and remote modes the screen renders only when `show` is not `false` **and** `title` or `body` has content; server-driven mode falls back to a generic "Thank you" when nothing is configured, and renders nothing on an explicit `show: false` (see [Per-mode behavior](../features/confirmation-screen.md#per-mode-behavior)). When shown, it replaces the final screen and the navigation controls/stepper are hidden.
 
 `title` and `body` support the same `${...}` reference markup as display components — references resolve against collected field values, calculations, and external `context` values (by name). A parent application can also override the configured message at runtime by returning (or resolving with) a `{ title?, body? }` object from `onFlowComplete` — useful for post-submit data such as a server-generated reference number.
 

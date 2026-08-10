@@ -34,7 +34,7 @@ const flow = {
 <FBRE flow={flow} onFlowComplete={handleComplete} />;
 ```
 
-It renders **only** when `show` is not `false` **and** `title` or `body` has content. There is no built-in default copy — an enabled-but-empty confirmation shows nothing and the flow behaves as before.
+In **local and remote modes** it renders **only** when `show` is not `false` **and** `title` or `body` has content. There is no built-in default copy — an enabled-but-empty confirmation shows nothing. Server-driven mode differs; see [Per-mode behavior](#per-mode-behavior).
 
 ### `ConfirmationConfig`
 
@@ -118,7 +118,22 @@ Fill in name + email and submit: the demo simulates a ~1.2s server round-trip (s
 - Schema: [`flow-schema.md` → ConfirmationConfig](../schema/flow-schema.md#confirmationconfig).
 - Integration reference: [FBRE Integration Guide → Confirmation Screen](../integration/fbre.md#confirmation-screen).
 
+## Per-mode behavior
+
+`<FBRE>` picks its mode from the props you pass, and the modes do not agree on what happens when a flow carries no confirmation:
+
+| `config.confirmation` | Local / Remote | Server-driven |
+| --- | --- | --- |
+| `title` and/or `body`, `show` not `false` | Renders it | Renders it |
+| Absent, or present but empty | Renders **nothing** — the final screen stays put, controls frozen | Falls back to a generic **"Thank you"** |
+| `show: false` | Renders nothing | Renders nothing |
+
+Server-driven mode falls back because the client there is frequently the entire page (the hosted renderer), with no parent UI to take over. In local and remote modes FBRE is embedded in an app that owns the page and receives `onFlowComplete`, so the library does not invent copy for someone else's layout — a parent that wants a terminal state either authors `config.confirmation` or returns a `ConfirmationResult`.
+
+> If your form is a lead-capture or contact flow, configure a confirmation. Without one the visitor submits and the page does not visibly change, which reads as a failed submit.
+
 ## Edge cases
 
 - A non-empty `ConfirmationResult` returned from `onFlowComplete` forces the confirmation to render even when `config.confirmation.show` is `false` (the override path bypasses the config gate). An empty object (`{}`) is ignored and does not count as an override.
-- The confirmation screen exists only in local and remote modes. In **server-driven mode** it is not rendered — the parent should present its own terminal state from `onFlowComplete`.
+- Server-driven mode drives the confirmation from `config.confirmation` alone — it does not honor a `ConfirmationResult` return, because `onFlowComplete` there receives the raw server result.
+- A flow cannot be submitted twice. Once completion succeeds, local and remote modes disable the Back and Submit controls even when no confirmation renders. A **rejected** promise re-enables them so the visitor can retry.
