@@ -3,6 +3,7 @@ title: Confirmation ("Thank You") Screen
 applies-to:
   - "@sonata-innovations/fiber-fbre@^3.3"
   - "@sonata-innovations/fiber-fbt@^2.2"
+  - "@sonata-innovations/fiber-shared@^1.0"
 read-when: "Configuring the post-submit thank-you screen: config.confirmation, dynamic ${...} content, and the onFlowComplete return contract."
 ---
 
@@ -64,6 +65,23 @@ In **local and remote modes** it renders **only** when `show` is not `false` **a
 
 > In FBT, the reference picker inserts field/calculation UUIDs for you. Context keys aren't in the picker yet — type `${key}` by hand for those. Resolved values are HTML-escaped (safe against injection).
 
+### Building your own picker
+
+Writing `"Thanks, ${...}!"` means knowing a component uuid, so a host app that offers its own picker ends up walking the flow to build the list. `resolvableReferences` does that walk once, in the order above, so a picker cannot drift from what the renderer will actually resolve:
+
+```ts
+import { resolvableReferences } from "@sonata-innovations/fiber-shared";
+
+const refs = resolvableReferences(flow, {
+  // Context keys can't be discovered from the flow — name the ones you pass.
+  contextKeys: ["support_email"],
+});
+// [{ uuid, label, kind: "calculation" | "field" | "context",
+//    componentType?, parentType?, screenUUID?, screenLabel? }, …]
+```
+
+Entries come back in resolution order — calculations, then fields in document order, then context keys — so the first match a picker offers is the one that wins at render time. Display-only components (headings, paragraphs, dividers) are omitted: they never contribute a value, so `${their-uuid}` resolves to nothing. Fields inside a group or repeater are included and carry `parentType`. Pass `exclude` to keep a field from being offered a reference to itself.
+
 ## Deciding *when* it shows: the `onFlowComplete` contract
 
 The confirmation appears when `onFlowComplete` settles. Its return value drives the behavior:
@@ -115,6 +133,7 @@ Fill in name + email and submit: the demo simulates a ~1.2s server round-trip (s
 ## Exports & schema
 
 - Types: `ConfirmationConfig`, `ConfirmationResult` — exported from `@sonata-innovations/fiber-fbre` (and `@sonata-innovations/fiber-types`).
+- Reference list: `resolvableReferences`, and the `ResolvableReference` / `ReferenceKind` types — exported from `@sonata-innovations/fiber-shared`.
 - Schema: [`flow-schema.md` → ConfirmationConfig](../schema/flow-schema.md#confirmationconfig).
 - Integration reference: [FBRE Integration Guide → Confirmation Screen](../integration/fbre.md#confirmation-screen).
 

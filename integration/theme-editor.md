@@ -80,7 +80,7 @@ type ThemeConfig = {
   text?: string;
   border?: string;
   radius?: string; // CSS length, e.g. "8px"
-  fontFamily?: string; // CSS font-family stack
+  fontFamily?: string | FontFamilyConfig; // CSS stack, or a font FBRE loads itself
   error?: string;
   success?: string;
   warning?: string;
@@ -130,6 +130,13 @@ function ThemePanel() {
 
 - `FBTL_KNOBS` — `background, surface, text, border, radius, fontFamily, error`.
 - `FBT_KNOBS` — the above plus `success, warning` (callout-only colors).
+
+The font knob is a plain text field: it edits a CSS stack, not a font file. If
+the theme it is editing carries a loadable font (`fontFamily` as
+`{ family, src }` — see [Loading a brand font](../features/fbre-theming.md#loading-a-brand-font)),
+the field shows the stack that config resolves to, and editing it rewrites the
+stack while **keeping the sources**. Clearing the knob drops the whole key,
+sources included.
 
 Pick the set that matches what your preview can actually show. Note the
 **built-in preview adapts**: when `knobs` includes `success`/`warning`, the

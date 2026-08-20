@@ -2,7 +2,7 @@
 title: FBTL Integration Guide
 applies-to:
   - "@sonata-innovations/fiber-fbtl@^2.2"
-read-when: "Embedding the lite builder in a parent app: controlled-component contract, scope, save lifecycle, normalizing generator-authored flows."
+read-when: "Embedding the lite builder in a parent app: controlled-component contract, scope, screen model, narrowing the palette, save lifecycle, normalizing generator-authored flows."
 ---
 
 # FBTL — Lite Builder UI
@@ -40,6 +40,7 @@ FBTL is a **controlled** component. The parent always owns `flow` state; FBTL fi
 | `theme` | `ThemeConfig` | No | — | Passed to the preview pane |
 | `navigation` | `NavigationConfig` | No | — | Passed to the preview pane |
 | `controls` | `ControlsConfig` | No | — | Passed to the preview pane |
+| `options` | `FBTLOptions` | No | — | Builder-UI configuration that never touches the flow — see [Screen model](#screen-model) and [Narrowing the palette](#narrowing-the-palette) |
 | `saveState` | `"idle" \| "saving" \| "saved" \| "error"` | No | `"idle"` | Drives the save-status pill |
 | `onSaveRetry` | `() => void` | No | — | Retry button handler when `saveState === "error"` |
 | `ctaPosition` | `"top" \| "bottom"` | No | `"bottom"` | Where the add-question CTA row renders |
@@ -54,6 +55,7 @@ FBTL is a **controlled** component. The parent always owns `flow` state; FBTL fi
 | `flow` | `Flow` | Yes |
 | `onChange` | `(flow: Flow) => void` | No |
 | `storeRef` | `MutableRefObject<StoreApi<FBTLStoreState> \| null>` | No |
+| `options` | `FBTLOptions` | No |
 | `children` | `ReactNode` | Yes |
 
 The remaining `<FBTL />` props map to composable sub-components instead: `theme`/`navigation`/`controls` are props of `FBTLPreview`; `saveState`/`onSaveRetry` map to `FBTLSaveStatePill`'s `state`/`onRetry`.
@@ -62,16 +64,75 @@ The remaining `<FBTL />` props map to composable sub-components instead: `theme`
 
 | | Creates in FBTL | Preserves on load (read-only) |
 |---|---|---|
-| Question types | Short answer, Long answer, Pick one, Pick several, Confirmation (agree/opt-in checkbox) | Full 30-type component registry |
+| Question types | Short answer, Long answer, Pick one, Pick several, Confirmation (agree/opt-in checkbox), Date, Time | Full 30-type component registry |
 | Screens | Page-break model: each card defaults to its own screen; consecutive cards can be merged onto a shared screen | Multi-screen structure round-trips (screen boundaries become break flags) |
 | Conditions | Single-rule conditions between top-level questions | Multi-rule (AND/OR) conditions |
 | Validation | Required toggle, Short Answer format sub-choice (Any / Email / Phone / URL / Number) | Character limits, regex, min/max, `matchesField`, custom validators |
 | Groups | Information Screens (heading + optional paragraph, stored as a group of `[header, text]`) | Mixed-content groups render as read-only "Section" containers |
 | Other | — | Calculations, reference markup, repeaters |
 
-"Pick one" chooses its emitted component by display variant and option count: 2 options default to `yesNo` (two buttons), 3–4 to `cardSelect`, 5+ to `dropDown`; the author can also pick `radio`. Across the wizard, FBTL emits `inputText`, `inputTextArea`, `inputNumber` (Short answer with Number format), `yesNo`, `radio`, `cardSelect`, `dropDown`, `checkbox`, `dropDownMulti`, `confirm`, and `group` (Information Screens) — useful when parsing FBTL-authored JSON.
+"Pick one" chooses its emitted component by display variant and option count: 2 options default to `yesNo` (two buttons), 3–4 to `cardSelect`, 5+ to `dropDown`; the author can also pick `radio`. "Date" likewise chooses between `date` and `dateTime` from its "Show as" sub-choice. Across the wizard, FBTL emits `inputText`, `inputTextArea`, `inputNumber` (Short answer with Number format), `yesNo`, `radio`, `cardSelect`, `dropDown`, `checkbox`, `dropDownMulti`, `confirm`, `date`, `dateTime`, `time`, and `group` (Information Screens) — useful when parsing FBTL-authored JSON.
 
-Loaded components with preserved advanced properties show a neutral "Has custom configuration" badge on the stage card. **FBTL never strips data on save** — advanced properties are round-tripped unchanged. There is no cross-link to FBT in FBTL v1.
+Loaded components with preserved advanced properties show a "Has custom configuration" badge on the stage card. Clicking the badge discloses *what* is configured — "custom condition logic", "sets a minimum, a maximum", and so on — so an author handed a pre-built question can at least see what they are not allowed to change. **FBTL never strips data on save** — advanced properties are round-tripped unchanged. There is no cross-link to FBT in FBTL v1.
+
+### Date and Time questions
+
+The Date and Time tiles author the same constraints the renderer reads, and the editor works on any `date` / `time` / `dateTime` component in the flow — including ones FBTL did not create, which is the case for anything a generator wrote directly:
+
+| Setting | Writes | Notes |
+|---|---|---|
+| Show as (Date tile) | the component `type` — `date` or `dateTime` | switching clears the keys the other shape does not use |
+| Allowed dates | `min` / `max` | "Today or later" emits the relative token `"today"`, which FBRE resolves at render time — the constraint does not go stale |
+| Date format | `dateFormat` | `MM/DD/YYYY`, `DD/MM/YYYY`, `YYYY-MM-DD` |
+| Allowed times | `min`/`max` on `time`, `minTime`/`maxTime` on `dateTime` | a `dateTime` constrains its date and time halves independently |
+| Time increments | `step` (seconds) | 15 minutes / 30 minutes / 1 hour, or unrestricted |
+
+Range types (`dateRange`, `timeRange`, `dateTimeRange`) are still preserved-only — they have no palette tile, and the condition builder offers them presence operators only. That limit is in the shared condition engine, not the UI: a range answers with a `{ start, end }` object, which the comparison operators stringify to `"[object Object]"`.
+
+### Narrowing the palette
+
+`options` shapes the builder without touching the flow:
+
+```ts
+<FBTL
+  flow={flow}
+  onChange={setFlow}
+  options={{
+    screenModel: "single",
+    allowedQuestionTypes: ["inputText", "pickOne", "date"],
+    lockedQuestionTypes: { time: "Available on the Pro plan" },
+  }}
+/>
+```
+
+- `screenModel` — see [Screen model](#screen-model) below.
+- `allowedQuestionTypes` — the palette shows only these tiles. Omit for all of them.
+- `lockedQuestionTypes` — the tile renders disabled with the given reason as its description, so a capability-gated host can show that a type exists rather than hiding it. A locked tile is shown even when `allowedQuestionTypes` leaves it out.
+
+Both are keyed by `QuestionType`, the palette's own vocabulary (`QUESTION_TYPES` is exported for building the list). These are *authoring tiles*, not FBRE component types — `"pickOne"` covers `yesNo` / `cardSelect` / `dropDown` / `radio`.
+
+This replaces the `disabledQuestionTypes` prop removed in 2.2.0, which never had an effect.
+
+### Screen model
+
+FBTL's stage is paged: a divider between every card, and new cards default to starting a new screen. `options.screenModel` says whether that is what the form wants.
+
+| Value | Stage | Emit |
+|---|---|---|
+| `"paged"` | break dividers between cards | screens follow the break flags |
+| `"single"` | dividers hidden | the whole flow emits as one screen |
+| `"auto"` (default) | resolves to one of the above | — |
+
+`"auto"` picks `"single"` only for a `standard`-mode flow that already fits on one screen, and `"paged"` for everything else. That restriction is deliberate: a standard-mode flow with six deliberate screens is a paged form, and collapsing it the first time the author edits anything would destroy structure the host never asked us to touch. A host that does want the collapse passes `"single"` outright.
+
+**`flow.config.mode` does not decide this.** In FBRE, `mode` is presentational — `conversational` adds auto-advance and its own styling, but screens stay screens in both modes. "All on one page" is a statement about screen *count*, which is why it is a separate option. A host offering the author a "one question at a time / all on one page" choice sets both: `config.mode` for the presentation and `screenModel` for the structure.
+
+Switching the model is a rewrite, and an intentional one — it happens when the host changes the prop, not on load:
+
+- → `"single"` collapses the break flags, so the next emit is one screen.
+- → `"paged"` restores FBTL's one-card-per-screen default rather than leaving every card merged with no way to tell them apart.
+
+One consequence worth knowing: on a single screen, no question is ever alone on its screen, so no condition is promoted to screen level — every condition becomes an in-place show/hide. FBTL says so on the conditional band (see the Emit Shape note below).
 
 ## Emit Shape (Page Breaks)
 
@@ -80,7 +141,7 @@ Screens in the emitted JSON are derived from **per-card break flags**, not a fix
 - Every stage card carries a break-after flag. New cards default to break-after, so a freshly authored flow *is* one question per screen — until the author merges cards onto a shared screen (the flag is toggled via the divider between cards).
 - Consecutive cards without a break between them emit onto the same `FlowScreen`.
 - A conditional question is grouped onto its trigger's screen, so it appears as an inline reveal rather than a separately gated screen.
-- Component-level conditions are promoted to screen-level `conditions` **only when the screen contains exactly one component**; on multi-component screens, conditions stay on the component.
+- Component-level conditions are promoted to screen-level `conditions` **only when the screen contains exactly one component**; on multi-component screens, conditions stay on the component. The two outcomes are visibly different to a visitor — a promoted condition skips the whole screen, a component-level one hides the question on a screen the visitor still reaches — so FBTL states which one the author is getting, on the conditional band and in the condition dialog. `getConditionBehavior` is exported if a host wants to say the same thing elsewhere.
 - On load, a multi-screen flow's boundaries are recorded as break flags, so screen structure **round-trips**. One caveat: the first screen's uuid is stable, but **non-first screens' uuids and labels are regenerated on emit** — don't key external state to them.
 - FBTL also force-fills missing config keys on load/emit: `mode: "conversational"`, `theme.style: "centered-minimal"`, `navigation.transition: "slide"`, `controls.showStepper: true`. A flow round-tripped through FBTL gains these defaults.
 
@@ -225,7 +286,8 @@ Normalize at ingest, not on every `onChange` — re-running it after the user ha
 - **Uncontrolled usage is not supported.** `flow` is required; FBTL does not hold its own copy. If `onChange` doesn't round-trip back to `flow`, edits will appear to revert.
 - **Do not mutate the `flow` prop in place.** Treat it as immutable — FBTL produces a new object on each `onChange`.
 - **Non-first screen uuids/labels are regenerated on emit.** Screen *structure* round-trips (see Emit Shape), but only the first screen's uuid is stable. If external state keys off screen uuids, use FBT instead.
-- **Advanced properties are preserved but invisible in the UI.** If an end user reports a card with a "Has custom configuration" badge and no way to edit it, that's expected — the flow was authored (or modified) somewhere richer than FBTL. There is no "Edit in FBT" affordance in v1.
+- **Advanced properties are preserved but not editable.** If an end user reports a card with a "Has custom configuration" badge and no way to change what it names, that's expected — the flow was authored (or modified) somewhere richer than FBTL. Clicking the badge says which settings those are; there is still no "Edit in FBT" affordance in v1.
+- **Switching `screenModel` rewrites screen structure.** It is not a view toggle — going to `"single"` collapses the break flags and going back restores one card per screen. Change it when the author changes their mind, not per render.
 - **Generator-authored flows may scatter conditionals.** If a conditional question shows up as its own gated screen instead of an inline reveal under its trigger, the source flow placed the conditional after an unrelated question. Run it through `normalizeConditionalOrder` (see *Normalizing Generator-Authored Flows*) before loading into FBTL.
 - **Import styles separately** (`import "@sonata-innovations/fiber-fbtl/styles"`) — styles are not bundled with the JS.
 
@@ -252,10 +314,25 @@ import {
 import { useFBTLStore, useFBTLStoreApi } from "@sonata-innovations/fiber-fbtl";
 
 // Flatten/unflatten utilities (expose one-question-per-screen transform)
-import { flattenFlow, unflattenFlow, componentsToScreens } from "@sonata-innovations/fiber-fbtl";
+import {
+  flattenFlow, unflattenFlow, componentsToScreens, partitionIntoScreens,
+} from "@sonata-innovations/fiber-fbtl";
+
+// Condition behaviour — skipped screen vs in-place hide, for the same
+// labelling FBTL renders internally
+import { getConditionBehavior, CONDITION_BEHAVIOR_LABELS } from "@sonata-innovations/fiber-fbtl";
+
+// The add-question palette's vocabulary (for options.allowedQuestionTypes)
+import { QUESTION_TYPES } from "@sonata-innovations/fiber-fbtl";
+
+// Screen model resolution (same rule the store applies)
+import { resolveScreenModel } from "@sonata-innovations/fiber-fbtl";
 
 // Types
-import type { FBTLProps, SaveState, FBTLStoreState } from "@sonata-innovations/fiber-fbtl";
+import type {
+  FBTLProps, FBTLOptions, QuestionType, ConditionBehavior, ScreenModel, ScreenModelOption,
+  SaveState, FBTLStoreState,
+} from "@sonata-innovations/fiber-fbtl";
 import type {
   Flow, FlowScreen, Component, FlowMetadata, FlowConfiguration, ComponentProperties,
   ThemeConfig, NavigationConfig, ControlsConfig,

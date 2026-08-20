@@ -136,7 +136,7 @@ Embedding a Fiber package in a parent application.
 
 - [FBRE Integration Guide](integration/fbre.md) — Embedding the render engine in a parent app: props and modes, onFlowComplete contract, confirmation screen, store access, events, theming, pre-populating data.
 - [FBT Integration Guide](integration/fbt.md) — Embedding the full builder in a parent app: getting the Flow out, composable layout, custom presets and templates.
-- [FBTL Integration Guide](integration/fbtl.md) — Embedding the lite builder in a parent app: controlled-component contract, scope, save lifecycle, normalizing generator-authored flows.
+- [FBTL Integration Guide](integration/fbtl.md) — Embedding the lite builder in a parent app: controlled-component contract, scope, screen model, narrowing the palette, save lifecycle, normalizing generator-authored flows.
 - [Theme Editor Integration Guide](integration/theme-editor.md) — Embedding the plug-and-play theming widget: controlled value contract, knob sets, defaults, modal pattern, passing the theme to FBRE/FBT/FBTL.
 
 ## Schema reference
@@ -153,7 +153,7 @@ Deep dives on individual capabilities.
 
 - [Confirmation ("Thank You") Screen](features/confirmation-screen.md) — Configuring the post-submit thank-you screen: config.confirmation, dynamic ${...} content, and the onFlowComplete return contract.
 - [Custom Presets & Templates (FBT)](features/custom-presets-and-templates.md) — Extending FBT's pool with custom presets/templates: data-based vs factory definitions, icon catalog, collision rules, server-stored definitions.
-- [FBRE Theming Guide](features/fbre-theming.md) — Theming FBRE-rendered forms: colorScheme presets, palette knobs, raw --fbre-* token overrides, precedence model, full token catalog.
+- [FBRE Theming Guide](features/fbre-theming.md) — Theming FBRE-rendered forms: colorScheme presets, palette knobs, loading a brand font, raw --fbre-* token overrides, precedence model, full token catalog.
 
 ## Example flows
 

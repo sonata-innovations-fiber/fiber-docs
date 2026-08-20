@@ -36,7 +36,7 @@ Flow
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `mode` | `FlowModeType` | `"standard"` | `"standard"` or `"conversational"` — conversational mode centers content, auto-advances on selection, and Enter-advances on text inputs |
-| `theme` | `ThemeConfig` | — | `{ color?, colorScheme?, style?, background?, surface?, text?, border?, radius?, fontFamily?, error?, success?, warning? }` — visual theme settings (palette knobs + preset) |
+| `theme` | `ThemeConfig` | — | `{ color?, colorScheme?, style?, background?, surface?, text?, border?, radius?, fontFamily?, error?, success?, warning? }` — visual theme settings (palette knobs + preset). `fontFamily` is a CSS stack string **or** `{ family, src }` for a font FBRE loads itself |
 | `navigation` | `NavigationConfig` | — | `{ transition?, allowInvalidTransition? }` — screen navigation settings |
 | `controls` | `ControlsConfig` | — | `{ show?, layout?, showStepper?, stepperStyle? }` — navigation controls settings |
 | `confirmation` | `ConfirmationConfig` | — | `{ show?, title?, body? }` — terminal thank-you screen (see [Confirmation Screen](../integration/fbre.md#confirmation-screen)) |

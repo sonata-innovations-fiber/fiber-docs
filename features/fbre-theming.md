@@ -2,7 +2,7 @@
 title: FBRE Theming Guide
 applies-to:
   - "@sonata-innovations/fiber-fbre@^3.3"
-read-when: "Theming FBRE-rendered forms: colorScheme presets, palette knobs, raw --fbre-* token overrides, precedence model, full token catalog."
+read-when: "Theming FBRE-rendered forms: colorScheme presets, palette knobs, loading a brand font, raw --fbre-* token overrides, precedence model, full token catalog."
 ---
 
 # FBRE Theming Guide
@@ -98,10 +98,51 @@ Each knob sets a **primary token** and **derives** the related tokens from it, s
 | `text` | `--fbre-text` | `--fbre-text-secondary/-placeholder/-disabled`, `--fbre-label` |
 | `border` | `--fbre-border` | `--fbre-border-hover/-light/-subtle` |
 | `radius` | `--fbre-radius` | — |
-| `fontFamily` | `--fbre-font` | — |
+| `fontFamily` | `--fbre-font` | — (see [Loading a brand font](#loading-a-brand-font)) |
 | `error` | `--fbre-error` | `--fbre-error-light` |
 | `success` | `--fbre-success` | `--fbre-success-bg`, `--fbre-success-border` |
 | `warning` | `--fbre-warning` | `--fbre-warning-bg`, `--fbre-warning-border` |
+
+### Loading a brand font
+
+`fontFamily` is a CSS family *string*. Setting it changes which family the form asks for; it does not make that family available. If no matching `@font-face` is registered in the document, the browser falls back to `system-ui` — quietly, and to something that looks approximately fine, which is why this failure tends to go unreported rather than get fixed.
+
+The host cannot always fix it from outside, either. FBRE is designed to mount inside a **shadow root**, and `@font-face` rules declared inside a shadow root's stylesheet are **not registered at all** — faces resolve at document level only. So the one place a customer-facing form actually runs is the place where injecting a stylesheet the way you inject the FBRE stylesheet (`adoptedStyleSheets`, see the [shadow-root section](../integration/fbre.md#mounting-inside-a-shadow-root)) does not work for fonts.
+
+To have FBRE load the font itself, give `fontFamily` an object instead of a string:
+
+```tsx
+<FBRE
+  flow={flow}
+  theme={{
+    fontFamily: {
+      family: "Brand Sans",
+      src: [{ url: "https://cdn.example.com/brand.woff2", format: "woff2" }],
+      faces: [
+        { src: [{ url: "https://cdn.example.com/brand-bold.woff2", format: "woff2" }], weight: "700" },
+      ],
+    },
+  }}
+  onFlowComplete={done}
+/>
+```
+
+FBRE registers those faces against the **owning document** of the element it mounted into — which is the host document even from inside a shadow root — and writes `"Brand Sans", system-ui, …` to `--fbre-font`. Because Fiber owns both halves, the family string and the loaded face cannot drift apart. Set `stack` to control the fallback chain explicitly.
+
+Registration is idempotent per document, so several FBRE instances sharing a page register each face once. A face that fails to fetch is reported but never thrown: the form renders in the fallback stack, exactly as it would have before, so a bad font URL cannot take a form down. A later render retries it.
+
+**Calling it yourself.** FBRE does this on mount, which means the first paint can happen before the face is ready. To register earlier — or against a document FBRE has not mounted into yet — call the helper directly:
+
+```ts
+import { ensureFontLoaded } from "@sonata-innovations/fiber-fbre";
+
+// Before rendering, or at app boot with the tenant's theme
+await ensureFontLoaded(theme, document);
+```
+
+It no-ops for a theme with no font, for a plain family string (that font is the host page's job), and where the FontFace API is unavailable. `fontFamilyStack(theme.fontFamily)` returns the stack FBRE writes, if you need to match it elsewhere in your UI.
+
+**A plain string is still correct** when the host page already loads the font — a self-hosted `@font-face` in the app's own CSS, or a Google Fonts `<link>`. Use the object form when the theme is data (a tenant picking their brand font) rather than something the app was built with.
 
 ### How derivation works
 

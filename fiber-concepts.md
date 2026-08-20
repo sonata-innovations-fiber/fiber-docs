@@ -23,7 +23,7 @@ read-when: "First contact with Fiber: the Flow/Screen/Component model, FlowData,
 Fiber is a system for building and rendering data-collection forms. It splits authoring from rendering and offers two authoring surfaces targeted at different audiences:
 
 - **FBT (Fiber Tool)** — A visual drag-and-drop builder for power users / form designers. Full feature surface: screens, multi-rule conditions, validation, calculations, reference markup, the complete 30-type component palette. See the [FBT integration guide](integration/fbt.md).
-- **FBTL (Fiber Tool Lite)** — A stripped-down, end-user-friendly builder designed to be embedded in parent apps so non-technical end users (clinicians, teachers, etc.) can author their own forms. Five question types + Information Screens + single-rule conditions. Preserves advanced properties from loaded flows without editing them. See the [FBTL integration guide](integration/fbtl.md).
+- **FBTL (Fiber Tool Lite)** — A stripped-down, end-user-friendly builder designed to be embedded in parent apps so non-technical end users (clinicians, teachers, etc.) can author their own forms. Seven question types + Information Screens + single-rule conditions. Preserves advanced properties from loaded flows without editing them. See the [FBTL integration guide](integration/fbtl.md).
 - **FBRE (Fiber Render Engine)** — A render engine that consumes Flow JSON, renders the interactive form for end users, and outputs collected data ("FlowData") back to the parent application. See the [FBRE integration guide](integration/fbre.md).
 
 A fourth library, the **Theme Editor**, is a plug-and-play widget that lets end users visually customize a flow's theme (color scheme, style, palette knobs) and emits the resulting `ThemeConfig`. See the [Theme Editor integration guide](integration/theme-editor.md).
@@ -93,7 +93,7 @@ The optional `config` object controls runtime behavior, organized into semantic 
 | `theme` | `colorScheme` | Built-in palette preset: `"light"` (default) or `"dark"` (replaces the former `darkMode` boolean) |
 | `theme` | `style` | Visual style (`"clean"`, `"outlined"`, …) |
 | `theme` | `background` / `surface` / `text` / `border` | Palette knobs overriding the preset tokens |
-| `theme` | `radius` / `fontFamily` | Corner radius and font family knobs |
+| `theme` | `radius` / `fontFamily` | Corner radius and font family knobs. `fontFamily` also accepts `{ family, src }`, which FBRE loads itself rather than assuming the host page already has the font |
 | `theme` | `error` / `success` / `warning` | Semantic state color knobs |
 | `navigation` | `transition` | Screen transition animation type |
 | `navigation` | `allowInvalidTransition` | Allow navigating past screens with validation errors |
@@ -292,11 +292,11 @@ The formula engine lives in `@sonata-innovations/fiber-shared`, so calculations 
 ### Authoring Phase (FBT or FBTL)
 
 1. A form author opens **FBT** (power users) or **FBTL** (non-technical end users) in a parent application
-2. They assemble the flow — FBT via multi-screen drag-and-drop with the full component palette; FBTL via a flat, one-question-per-screen list limited to five question types plus Information Screens
+2. They assemble the flow — FBT via multi-screen drag-and-drop with the full component palette; FBTL via a flat, one-question-per-screen list limited to seven question types plus Information Screens
 3. The builder produces a Flow JSON object via the `onFlowChange` callback (FBT also exposes `exportFlow()` on the store)
 4. The parent application saves the Flow JSON (to a database, file, API, etc.)
 
-FBTL emits a flow with one component per screen (conversational mode) and promotes component-level conditions to screen-level conditions on emit. Loading a multi-screen flow into FBTL flattens it into the one-per-screen shape on the next save, while preserving all advanced properties (calculations, reference markup, multi-rule conditions, etc.) that FBTL itself cannot edit. The resulting JSON remains fully interoperable with FBT.
+FBTL uses a **page-break model**: each stage card carries a break-after flag, so a freshly authored flow is one question per screen until the author merges cards onto a shared screen. Screen structure round-trips — a loaded multi-screen flow's boundaries become break flags rather than being flattened away — and the host can switch the builder to a single-screen model entirely (`options.screenModel`). A component-level condition is promoted to a screen-level condition only when its screen ends up holding exactly one component; otherwise it stays on the component as an in-place show/hide. Advanced properties FBTL cannot edit (calculations, reference markup, multi-rule conditions, and so on) are preserved untouched, and the resulting JSON remains fully interoperable with FBT.
 
 ### Rendering Phase (FBRE)
 
@@ -386,6 +386,8 @@ The markup → HTML converter lives in `@sonata-innovations/fiber-shared`, share
 ### Reference Markup
 
 `${...}` tokens interpolate live values into text. A token is resolved in order against: **calculations** (by UUID) → **component values** (by UUID) → **context** (by key, from FBRE's `context` prop). Unresolvable references render as empty. This powers dynamic text like "Your total is ${calc-uuid}" or "Welcome back, ${userName}".
+
+Writing one means knowing a UUID, so builders offer a picker. `resolvableReferences(flow)` from `@sonata-innovations/fiber-shared` returns every reference a flow can resolve, in that same order — use it rather than re-walking the flow, so a picker cannot drift from what the renderer will actually resolve. See [Confirmation Screen → Building your own picker](features/confirmation-screen.md#building-your-own-picker).
 
 ---
 

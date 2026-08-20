@@ -280,7 +280,7 @@ Three ways to theme, from least to most control: pick a **color scheme** preset,
 
 The color scheme is selected via the `theme` prop (`{ colorScheme: "dark" }`) or `flow.config.theme.colorScheme` (default `"light"`). The prop takes precedence. `colorScheme` seeds the built-in light/dark palette preset; it replaces the former `darkMode` boolean.
 
-Palette knobs on `theme` (`color`, `background`, `surface`, `text`, `border`, `radius`, `fontFamily`, and the semantic `error`/`success`/`warning`) are applied automatically via inline style and override the corresponding `--fbre-*` CSS variables on top of the preset. Each derives its related tokens (e.g. `surface` also sets the input fills and hover/alt surfaces). Any subset may be set; unset knobs fall through to the preset. Example: `<FBRE theme={{ colorScheme: "dark", surface: "#243244", text: "#e8ede9" }} ... />`. For finer control you can still override the raw `--fbre-*` variables in your own CSS.
+Palette knobs on `theme` (`color`, `background`, `surface`, `text`, `border`, `radius`, `fontFamily`, and the semantic `error`/`success`/`warning`) are applied automatically via inline style and override the corresponding `--fbre-*` CSS variables on top of the preset. `fontFamily` also accepts `{ family, src }` — see [Loading a brand font](../features/fbre-theming.md#loading-a-brand-font), which is the only form that works when the host page does not already load the font. Each derives its related tokens (e.g. `surface` also sets the input fills and hover/alt surfaces). Any subset may be set; unset knobs fall through to the preset. Example: `<FBRE theme={{ colorScheme: "dark", surface: "#243244", text: "#e8ede9" }} ... />`. For finer control you can still override the raw `--fbre-*` variables in your own CSS.
 
 ## Pre-populating Data
 
@@ -374,6 +374,7 @@ Everything else works unchanged:
 
 - **Theming.** All `--fbre-*` tokens are declared on `.fbre-container`, which FBRE renders itself — so the override recipe in the [Theming Guide](../features/fbre-theming.md) applies verbatim inside a root. Nothing is read from `:root`.
 - **Overlays.** Dropdowns and the date/colour pickers are positioned in-tree. The tooltip is the only portal, and it targets the nearest `.fbre-container`, so it stays inside the root.
+- **Brand fonts.** `@font-face` is the one thing the `adoptedStyleSheets` recipe above cannot deliver — a face declared inside a shadow root's stylesheet is not registered at all. Give `theme.fontFamily` an object carrying the font's sources and FBRE registers the faces against the owning document itself. See [Loading a brand font](../features/fbre-theming.md#loading-a-brand-font).
 - **Outside-click and Enter-to-advance** use `composedPath()`, so they survive event retargeting. Before 3.4.1 they did not: a `mousedown` inside an open panel read as a click outside it and closed it, which broke multi-select, the date picker's two-step range, and the colour picker's drag.
 
 One behavioural difference to be aware of: overlay flip/shift detection walks up for a scrolling ancestor and cannot see past the shadow boundary, so it falls back to viewport bounds. Overlays still open and remain usable; placement near the edge of a scrolling container outside the root is just less precise.
@@ -408,4 +409,6 @@ const checkProgress = () => {
 - Access `storeRef.current` before the provider has mounted — it will be `null`
 - Use the `useFBREStore` hook outside the FBRE provider — it requires context
 
-**Type imports:** `Flow`, `FlowData`, `ScreenData`, `ComponentData`, `FileUploadData`, `ThemeConfig`, and the condition/validation types are all re-exported from `@sonata-innovations/fiber-fbre` — no direct dependency on `fiber-types` is needed.
+**Type imports:** `Flow`, `FlowData`, `ScreenData`, `ComponentData`, `FileUploadData`, `ThemeConfig`, `FontFamilyConfig`, and the condition/validation types are all re-exported from `@sonata-innovations/fiber-fbre` — no direct dependency on `fiber-types` is needed.
+
+**Function exports:** `ensureFontLoaded(theme, doc?)` registers a theme's brand font in a document (FBRE calls it itself on mount; call it directly to register before first paint), and `fontFamilyStack(theme.fontFamily)` returns the CSS stack FBRE writes to `--fbre-font`.

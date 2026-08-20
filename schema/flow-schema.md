@@ -65,10 +65,39 @@ The theme has two layers: `colorScheme` + `style` pick built-in presets (the see
 | `text`       | `string`        | No       | Primary text color (`--fbre-text`); derives secondary/placeholder/label    |
 | `border`     | `string`        | No       | Border/rule color (`--fbre-border`); derives hover/light/subtle            |
 | `radius`     | `string`        | No       | Corner radius, any CSS length (`--fbre-radius`), e.g. `"3px"`               |
-| `fontFamily` | `string`        | No       | Font family stack (`--fbre-font`)                                           |
+| `fontFamily` | `string \| FontFamilyConfig` | No | Font family (`--fbre-font`). See [FontFamilyConfig](#fontfamilyconfig)   |
 | `error`      | `string`        | No       | Error state color (`--fbre-error`)                                          |
 | `success`    | `string`        | No       | Success state color (`--fbre-success`)                                      |
 | `warning`    | `string`        | No       | Warning state color (`--fbre-warning`)                                      |
+
+#### FontFamilyConfig
+
+A plain string is a CSS stack and nothing more: the form renders in that family only if the host page already loaded it, and falls back to `system-ui` otherwise — silently, and to something that looks approximately fine. Passing an object instead gives the renderer the sources, and FBRE registers the faces in the owning document itself.
+
+That matters most where the host cannot patch around it. FBRE is designed to mount inside a shadow root, and `@font-face` rules declared inside a shadow root's stylesheet are never registered — faces resolve at document level only.
+
+| Field    | Type               | Required | Description                                                        |
+| -------- | ------------------ | -------- | ------------------------------------------------------------------ |
+| `family` | `string`           | Yes      | CSS family name, used for both the `@font-face` and the token value |
+| `src`    | `FontSource[]`     | No       | Shorthand for a single regular face. Merged with `faces`            |
+| `faces`  | `FontFaceConfig[]` | No       | Additional faces — a second weight, an italic                       |
+| `stack`  | `string`           | No       | Full stack written to `--fbre-font`. Defaults to the family plus a system fallback |
+
+`FontSource` is `{ url, format? }`; `FontFaceConfig` is `{ src, weight?, style?, display?, unicodeRange? }`.
+
+```json
+{
+  "fontFamily": {
+    "family": "Brand Sans",
+    "src": [{ "url": "https://cdn.example.com/brand.woff2", "format": "woff2" }],
+    "faces": [
+      { "src": [{ "url": "https://cdn.example.com/brand-bold.woff2", "format": "woff2" }], "weight": "700" }
+    ]
+  }
+}
+```
+
+See [FBRE Theming Guide → Loading a brand font](../features/fbre-theming.md#loading-a-brand-font).
 
 #### Style Types
 

@@ -24,7 +24,7 @@ read-when: "Choosing which Fiber packages to install, or looking for the right i
 | Audience | Power users / form designers | Non-technical end users embedded in parent apps | End users filling in the form |
 | Purpose | Full-featured form builder → outputs Flow JSON | Stripped-down builder → outputs Flow JSON (same schema) | Consumes Flow JSON → renders form → outputs FlowData |
 
-**Choosing a builder:** FBT exposes the full feature surface (screens, multi-rule conditions, calculations, reference markup, the full 30-type component palette). FBTL exposes five question types + Information Screens + single-rule conditions, designed for non-technical end users. Both produce the same Flow schema, so a flow authored in either is renderable by FBRE and portable between them. FBTL preserves advanced properties on loaded flows without editing them (surfaced via a neutral "Has custom configuration" badge).
+**Choosing a builder:** FBT exposes the full feature surface (screens, multi-rule conditions, calculations, reference markup, the full 30-type component palette). FBTL exposes seven question types + Information Screens + single-rule conditions, designed for non-technical end users, and the host can narrow that palette further. Both produce the same Flow schema, so a flow authored in either is renderable by FBRE and portable between them. FBTL preserves advanced properties on loaded flows without editing them (surfaced via a "Has custom configuration" badge that discloses which settings it cannot touch).
 
 ## Installation
 

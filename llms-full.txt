@@ -25,7 +25,7 @@ Generated from https://github.com/sonata-innovations/fiber-docs. Each section be
 Fiber is a system for building and rendering data-collection forms. It splits authoring from rendering and offers two authoring surfaces targeted at different audiences:
 
 - **FBT (Fiber Tool)** — A visual drag-and-drop builder for power users / form designers. Full feature surface: screens, multi-rule conditions, validation, calculations, reference markup, the complete 30-type component palette. See the [FBT integration guide](integration/fbt.md).
-- **FBTL (Fiber Tool Lite)** — A stripped-down, end-user-friendly builder designed to be embedded in parent apps so non-technical end users (clinicians, teachers, etc.) can author their own forms. Five question types + Information Screens + single-rule conditions. Preserves advanced properties from loaded flows without editing them. See the [FBTL integration guide](integration/fbtl.md).
+- **FBTL (Fiber Tool Lite)** — A stripped-down, end-user-friendly builder designed to be embedded in parent apps so non-technical end users (clinicians, teachers, etc.) can author their own forms. Seven question types + Information Screens + single-rule conditions. Preserves advanced properties from loaded flows without editing them. See the [FBTL integration guide](integration/fbtl.md).
 - **FBRE (Fiber Render Engine)** — A render engine that consumes Flow JSON, renders the interactive form for end users, and outputs collected data ("FlowData") back to the parent application. See the [FBRE integration guide](integration/fbre.md).
 
 A fourth library, the **Theme Editor**, is a plug-and-play widget that lets end users visually customize a flow's theme (color scheme, style, palette knobs) and emits the resulting `ThemeConfig`. See the [Theme Editor integration guide](integration/theme-editor.md).
@@ -95,7 +95,7 @@ The optional `config` object controls runtime behavior, organized into semantic 
 | `theme` | `colorScheme` | Built-in palette preset: `"light"` (default) or `"dark"` (replaces the former `darkMode` boolean) |
 | `theme` | `style` | Visual style (`"clean"`, `"outlined"`, …) |
 | `theme` | `background` / `surface` / `text` / `border` | Palette knobs overriding the preset tokens |
-| `theme` | `radius` / `fontFamily` | Corner radius and font family knobs |
+| `theme` | `radius` / `fontFamily` | Corner radius and font family knobs. `fontFamily` also accepts `{ family, src }`, which FBRE loads itself rather than assuming the host page already has the font |
 | `theme` | `error` / `success` / `warning` | Semantic state color knobs |
 | `navigation` | `transition` | Screen transition animation type |
 | `navigation` | `allowInvalidTransition` | Allow navigating past screens with validation errors |
@@ -294,11 +294,11 @@ The formula engine lives in `@sonata-innovations/fiber-shared`, so calculations 
 ### Authoring Phase (FBT or FBTL)
 
 1. A form author opens **FBT** (power users) or **FBTL** (non-technical end users) in a parent application
-2. They assemble the flow — FBT via multi-screen drag-and-drop with the full component palette; FBTL via a flat, one-question-per-screen list limited to five question types plus Information Screens
+2. They assemble the flow — FBT via multi-screen drag-and-drop with the full component palette; FBTL via a flat, one-question-per-screen list limited to seven question types plus Information Screens
 3. The builder produces a Flow JSON object via the `onFlowChange` callback (FBT also exposes `exportFlow()` on the store)
 4. The parent application saves the Flow JSON (to a database, file, API, etc.)
 
-FBTL emits a flow with one component per screen (conversational mode) and promotes component-level conditions to screen-level conditions on emit. Loading a multi-screen flow into FBTL flattens it into the one-per-screen shape on the next save, while preserving all advanced properties (calculations, reference markup, multi-rule conditions, etc.) that FBTL itself cannot edit. The resulting JSON remains fully interoperable with FBT.
+FBTL uses a **page-break model**: each stage card carries a break-after flag, so a freshly authored flow is one question per screen until the author merges cards onto a shared screen. Screen structure round-trips — a loaded multi-screen flow's boundaries become break flags rather than being flattened away — and the host can switch the builder to a single-screen model entirely (`options.screenModel`). A component-level condition is promoted to a screen-level condition only when its screen ends up holding exactly one component; otherwise it stays on the component as an in-place show/hide. Advanced properties FBTL cannot edit (calculations, reference markup, multi-rule conditions, and so on) are preserved untouched, and the resulting JSON remains fully interoperable with FBT.
 
 ### Rendering Phase (FBRE)
 
@@ -388,6 +388,8 @@ The markup → HTML converter lives in `@sonata-innovations/fiber-shared`, share
 ### Reference Markup
 
 `${...}` tokens interpolate live values into text. A token is resolved in order against: **calculations** (by UUID) → **component values** (by UUID) → **context** (by key, from FBRE's `context` prop). Unresolvable references render as empty. This powers dynamic text like "Your total is ${calc-uuid}" or "Welcome back, ${userName}".
+
+Writing one means knowing a UUID, so builders offer a picker. `resolvableReferences(flow)` from `@sonata-innovations/fiber-shared` returns every reference a flow can resolve, in that same order — use it rather than re-walking the flow, so a picker cannot drift from what the renderer will actually resolve. See [Confirmation Screen → Building your own picker](features/confirmation-screen.md#building-your-own-picker).
 
 ---
 
@@ -745,7 +747,7 @@ Three ways to theme, from least to most control: pick a **color scheme** preset,
 
 The color scheme is selected via the `theme` prop (`{ colorScheme: "dark" }`) or `flow.config.theme.colorScheme` (default `"light"`). The prop takes precedence. `colorScheme` seeds the built-in light/dark palette preset; it replaces the former `darkMode` boolean.
 
-Palette knobs on `theme` (`color`, `background`, `surface`, `text`, `border`, `radius`, `fontFamily`, and the semantic `error`/`success`/`warning`) are applied automatically via inline style and override the corresponding `--fbre-*` CSS variables on top of the preset. Each derives its related tokens (e.g. `surface` also sets the input fills and hover/alt surfaces). Any subset may be set; unset knobs fall through to the preset. Example: `<FBRE theme={{ colorScheme: "dark", surface: "#243244", text: "#e8ede9" }} ... />`. For finer control you can still override the raw `--fbre-*` variables in your own CSS.
+Palette knobs on `theme` (`color`, `background`, `surface`, `text`, `border`, `radius`, `fontFamily`, and the semantic `error`/`success`/`warning`) are applied automatically via inline style and override the corresponding `--fbre-*` CSS variables on top of the preset. `fontFamily` also accepts `{ family, src }` — see [Loading a brand font](../features/fbre-theming.md#loading-a-brand-font), which is the only form that works when the host page does not already load the font. Each derives its related tokens (e.g. `surface` also sets the input fills and hover/alt surfaces). Any subset may be set; unset knobs fall through to the preset. Example: `<FBRE theme={{ colorScheme: "dark", surface: "#243244", text: "#e8ede9" }} ... />`. For finer control you can still override the raw `--fbre-*` variables in your own CSS.
 
 ## Pre-populating Data
 
@@ -839,6 +841,7 @@ Everything else works unchanged:
 
 - **Theming.** All `--fbre-*` tokens are declared on `.fbre-container`, which FBRE renders itself — so the override recipe in the [Theming Guide](../features/fbre-theming.md) applies verbatim inside a root. Nothing is read from `:root`.
 - **Overlays.** Dropdowns and the date/colour pickers are positioned in-tree. The tooltip is the only portal, and it targets the nearest `.fbre-container`, so it stays inside the root.
+- **Brand fonts.** `@font-face` is the one thing the `adoptedStyleSheets` recipe above cannot deliver — a face declared inside a shadow root's stylesheet is not registered at all. Give `theme.fontFamily` an object carrying the font's sources and FBRE registers the faces against the owning document itself. See [Loading a brand font](../features/fbre-theming.md#loading-a-brand-font).
 - **Outside-click and Enter-to-advance** use `composedPath()`, so they survive event retargeting. Before 3.4.1 they did not: a `mousedown` inside an open panel read as a click outside it and closed it, which broke multi-select, the date picker's two-step range, and the colour picker's drag.
 
 One behavioural difference to be aware of: overlay flip/shift detection walks up for a scrolling ancestor and cannot see past the shadow boundary, so it falls back to viewport bounds. Overlays still open and remain usable; placement near the edge of a scrolling container outside the root is just less precise.
@@ -873,7 +876,9 @@ const checkProgress = () => {
 - Access `storeRef.current` before the provider has mounted — it will be `null`
 - Use the `useFBREStore` hook outside the FBRE provider — it requires context
 
-**Type imports:** `Flow`, `FlowData`, `ScreenData`, `ComponentData`, `FileUploadData`, `ThemeConfig`, and the condition/validation types are all re-exported from `@sonata-innovations/fiber-fbre` — no direct dependency on `fiber-types` is needed.
+**Type imports:** `Flow`, `FlowData`, `ScreenData`, `ComponentData`, `FileUploadData`, `ThemeConfig`, `FontFamilyConfig`, and the condition/validation types are all re-exported from `@sonata-innovations/fiber-fbre` — no direct dependency on `fiber-types` is needed.
+
+**Function exports:** `ensureFontLoaded(theme, doc?)` registers a theme's brand font in a document (FBRE calls it itself on mount; call it directly to register before first paint), and `fontFamilyStack(theme.fontFamily)` returns the CSS stack FBRE writes to `--fbre-font`.
 
 
 ==============================================================================
@@ -1118,7 +1123,7 @@ function App() {
 ==============================================================================
 # FILE: integration/fbtl.md
 # APPLIES TO: @sonata-innovations/fiber-fbtl@^2.2
-# READ WHEN: Embedding the lite builder in a parent app: controlled-component contract, scope, save lifecycle, normalizing generator-authored flows.
+# READ WHEN: Embedding the lite builder in a parent app: controlled-component contract, scope, screen model, narrowing the palette, save lifecycle, normalizing generator-authored flows.
 ==============================================================================
 
 # FBTL — Lite Builder UI
@@ -1156,6 +1161,7 @@ FBTL is a **controlled** component. The parent always owns `flow` state; FBTL fi
 | `theme` | `ThemeConfig` | No | — | Passed to the preview pane |
 | `navigation` | `NavigationConfig` | No | — | Passed to the preview pane |
 | `controls` | `ControlsConfig` | No | — | Passed to the preview pane |
+| `options` | `FBTLOptions` | No | — | Builder-UI configuration that never touches the flow — see [Screen model](#screen-model) and [Narrowing the palette](#narrowing-the-palette) |
 | `saveState` | `"idle" \| "saving" \| "saved" \| "error"` | No | `"idle"` | Drives the save-status pill |
 | `onSaveRetry` | `() => void` | No | — | Retry button handler when `saveState === "error"` |
 | `ctaPosition` | `"top" \| "bottom"` | No | `"bottom"` | Where the add-question CTA row renders |
@@ -1170,6 +1176,7 @@ FBTL is a **controlled** component. The parent always owns `flow` state; FBTL fi
 | `flow` | `Flow` | Yes |
 | `onChange` | `(flow: Flow) => void` | No |
 | `storeRef` | `MutableRefObject<StoreApi<FBTLStoreState> \| null>` | No |
+| `options` | `FBTLOptions` | No |
 | `children` | `ReactNode` | Yes |
 
 The remaining `<FBTL />` props map to composable sub-components instead: `theme`/`navigation`/`controls` are props of `FBTLPreview`; `saveState`/`onSaveRetry` map to `FBTLSaveStatePill`'s `state`/`onRetry`.
@@ -1178,16 +1185,75 @@ The remaining `<FBTL />` props map to composable sub-components instead: `theme`
 
 | | Creates in FBTL | Preserves on load (read-only) |
 |---|---|---|
-| Question types | Short answer, Long answer, Pick one, Pick several, Confirmation (agree/opt-in checkbox) | Full 30-type component registry |
+| Question types | Short answer, Long answer, Pick one, Pick several, Confirmation (agree/opt-in checkbox), Date, Time | Full 30-type component registry |
 | Screens | Page-break model: each card defaults to its own screen; consecutive cards can be merged onto a shared screen | Multi-screen structure round-trips (screen boundaries become break flags) |
 | Conditions | Single-rule conditions between top-level questions | Multi-rule (AND/OR) conditions |
 | Validation | Required toggle, Short Answer format sub-choice (Any / Email / Phone / URL / Number) | Character limits, regex, min/max, `matchesField`, custom validators |
 | Groups | Information Screens (heading + optional paragraph, stored as a group of `[header, text]`) | Mixed-content groups render as read-only "Section" containers |
 | Other | — | Calculations, reference markup, repeaters |
 
-"Pick one" chooses its emitted component by display variant and option count: 2 options default to `yesNo` (two buttons), 3–4 to `cardSelect`, 5+ to `dropDown`; the author can also pick `radio`. Across the wizard, FBTL emits `inputText`, `inputTextArea`, `inputNumber` (Short answer with Number format), `yesNo`, `radio`, `cardSelect`, `dropDown`, `checkbox`, `dropDownMulti`, `confirm`, and `group` (Information Screens) — useful when parsing FBTL-authored JSON.
+"Pick one" chooses its emitted component by display variant and option count: 2 options default to `yesNo` (two buttons), 3–4 to `cardSelect`, 5+ to `dropDown`; the author can also pick `radio`. "Date" likewise chooses between `date` and `dateTime` from its "Show as" sub-choice. Across the wizard, FBTL emits `inputText`, `inputTextArea`, `inputNumber` (Short answer with Number format), `yesNo`, `radio`, `cardSelect`, `dropDown`, `checkbox`, `dropDownMulti`, `confirm`, `date`, `dateTime`, `time`, and `group` (Information Screens) — useful when parsing FBTL-authored JSON.
 
-Loaded components with preserved advanced properties show a neutral "Has custom configuration" badge on the stage card. **FBTL never strips data on save** — advanced properties are round-tripped unchanged. There is no cross-link to FBT in FBTL v1.
+Loaded components with preserved advanced properties show a "Has custom configuration" badge on the stage card. Clicking the badge discloses *what* is configured — "custom condition logic", "sets a minimum, a maximum", and so on — so an author handed a pre-built question can at least see what they are not allowed to change. **FBTL never strips data on save** — advanced properties are round-tripped unchanged. There is no cross-link to FBT in FBTL v1.
+
+### Date and Time questions
+
+The Date and Time tiles author the same constraints the renderer reads, and the editor works on any `date` / `time` / `dateTime` component in the flow — including ones FBTL did not create, which is the case for anything a generator wrote directly:
+
+| Setting | Writes | Notes |
+|---|---|---|
+| Show as (Date tile) | the component `type` — `date` or `dateTime` | switching clears the keys the other shape does not use |
+| Allowed dates | `min` / `max` | "Today or later" emits the relative token `"today"`, which FBRE resolves at render time — the constraint does not go stale |
+| Date format | `dateFormat` | `MM/DD/YYYY`, `DD/MM/YYYY`, `YYYY-MM-DD` |
+| Allowed times | `min`/`max` on `time`, `minTime`/`maxTime` on `dateTime` | a `dateTime` constrains its date and time halves independently |
+| Time increments | `step` (seconds) | 15 minutes / 30 minutes / 1 hour, or unrestricted |
+
+Range types (`dateRange`, `timeRange`, `dateTimeRange`) are still preserved-only — they have no palette tile, and the condition builder offers them presence operators only. That limit is in the shared condition engine, not the UI: a range answers with a `{ start, end }` object, which the comparison operators stringify to `"[object Object]"`.
+
+### Narrowing the palette
+
+`options` shapes the builder without touching the flow:
+
+```ts
+<FBTL
+  flow={flow}
+  onChange={setFlow}
+  options={{
+    screenModel: "single",
+    allowedQuestionTypes: ["inputText", "pickOne", "date"],
+    lockedQuestionTypes: { time: "Available on the Pro plan" },
+  }}
+/>
+```
+
+- `screenModel` — see [Screen model](#screen-model) below.
+- `allowedQuestionTypes` — the palette shows only these tiles. Omit for all of them.
+- `lockedQuestionTypes` — the tile renders disabled with the given reason as its description, so a capability-gated host can show that a type exists rather than hiding it. A locked tile is shown even when `allowedQuestionTypes` leaves it out.
+
+Both are keyed by `QuestionType`, the palette's own vocabulary (`QUESTION_TYPES` is exported for building the list). These are *authoring tiles*, not FBRE component types — `"pickOne"` covers `yesNo` / `cardSelect` / `dropDown` / `radio`.
+
+This replaces the `disabledQuestionTypes` prop removed in 2.2.0, which never had an effect.
+
+### Screen model
+
+FBTL's stage is paged: a divider between every card, and new cards default to starting a new screen. `options.screenModel` says whether that is what the form wants.
+
+| Value | Stage | Emit |
+|---|---|---|
+| `"paged"` | break dividers between cards | screens follow the break flags |
+| `"single"` | dividers hidden | the whole flow emits as one screen |
+| `"auto"` (default) | resolves to one of the above | — |
+
+`"auto"` picks `"single"` only for a `standard`-mode flow that already fits on one screen, and `"paged"` for everything else. That restriction is deliberate: a standard-mode flow with six deliberate screens is a paged form, and collapsing it the first time the author edits anything would destroy structure the host never asked us to touch. A host that does want the collapse passes `"single"` outright.
+
+**`flow.config.mode` does not decide this.** In FBRE, `mode` is presentational — `conversational` adds auto-advance and its own styling, but screens stay screens in both modes. "All on one page" is a statement about screen *count*, which is why it is a separate option. A host offering the author a "one question at a time / all on one page" choice sets both: `config.mode` for the presentation and `screenModel` for the structure.
+
+Switching the model is a rewrite, and an intentional one — it happens when the host changes the prop, not on load:
+
+- → `"single"` collapses the break flags, so the next emit is one screen.
+- → `"paged"` restores FBTL's one-card-per-screen default rather than leaving every card merged with no way to tell them apart.
+
+One consequence worth knowing: on a single screen, no question is ever alone on its screen, so no condition is promoted to screen level — every condition becomes an in-place show/hide. FBTL says so on the conditional band (see the Emit Shape note below).
 
 ## Emit Shape (Page Breaks)
 
@@ -1196,7 +1262,7 @@ Screens in the emitted JSON are derived from **per-card break flags**, not a fix
 - Every stage card carries a break-after flag. New cards default to break-after, so a freshly authored flow *is* one question per screen — until the author merges cards onto a shared screen (the flag is toggled via the divider between cards).
 - Consecutive cards without a break between them emit onto the same `FlowScreen`.
 - A conditional question is grouped onto its trigger's screen, so it appears as an inline reveal rather than a separately gated screen.
-- Component-level conditions are promoted to screen-level `conditions` **only when the screen contains exactly one component**; on multi-component screens, conditions stay on the component.
+- Component-level conditions are promoted to screen-level `conditions` **only when the screen contains exactly one component**; on multi-component screens, conditions stay on the component. The two outcomes are visibly different to a visitor — a promoted condition skips the whole screen, a component-level one hides the question on a screen the visitor still reaches — so FBTL states which one the author is getting, on the conditional band and in the condition dialog. `getConditionBehavior` is exported if a host wants to say the same thing elsewhere.
 - On load, a multi-screen flow's boundaries are recorded as break flags, so screen structure **round-trips**. One caveat: the first screen's uuid is stable, but **non-first screens' uuids and labels are regenerated on emit** — don't key external state to them.
 - FBTL also force-fills missing config keys on load/emit: `mode: "conversational"`, `theme.style: "centered-minimal"`, `navigation.transition: "slide"`, `controls.showStepper: true`. A flow round-tripped through FBTL gains these defaults.
 
@@ -1341,7 +1407,8 @@ Normalize at ingest, not on every `onChange` — re-running it after the user ha
 - **Uncontrolled usage is not supported.** `flow` is required; FBTL does not hold its own copy. If `onChange` doesn't round-trip back to `flow`, edits will appear to revert.
 - **Do not mutate the `flow` prop in place.** Treat it as immutable — FBTL produces a new object on each `onChange`.
 - **Non-first screen uuids/labels are regenerated on emit.** Screen *structure* round-trips (see Emit Shape), but only the first screen's uuid is stable. If external state keys off screen uuids, use FBT instead.
-- **Advanced properties are preserved but invisible in the UI.** If an end user reports a card with a "Has custom configuration" badge and no way to edit it, that's expected — the flow was authored (or modified) somewhere richer than FBTL. There is no "Edit in FBT" affordance in v1.
+- **Advanced properties are preserved but not editable.** If an end user reports a card with a "Has custom configuration" badge and no way to change what it names, that's expected — the flow was authored (or modified) somewhere richer than FBTL. Clicking the badge says which settings those are; there is still no "Edit in FBT" affordance in v1.
+- **Switching `screenModel` rewrites screen structure.** It is not a view toggle — going to `"single"` collapses the break flags and going back restores one card per screen. Change it when the author changes their mind, not per render.
 - **Generator-authored flows may scatter conditionals.** If a conditional question shows up as its own gated screen instead of an inline reveal under its trigger, the source flow placed the conditional after an unrelated question. Run it through `normalizeConditionalOrder` (see *Normalizing Generator-Authored Flows*) before loading into FBTL.
 - **Import styles separately** (`import "@sonata-innovations/fiber-fbtl/styles"`) — styles are not bundled with the JS.
 
@@ -1368,10 +1435,25 @@ import {
 import { useFBTLStore, useFBTLStoreApi } from "@sonata-innovations/fiber-fbtl";
 
 // Flatten/unflatten utilities (expose one-question-per-screen transform)
-import { flattenFlow, unflattenFlow, componentsToScreens } from "@sonata-innovations/fiber-fbtl";
+import {
+  flattenFlow, unflattenFlow, componentsToScreens, partitionIntoScreens,
+} from "@sonata-innovations/fiber-fbtl";
+
+// Condition behaviour — skipped screen vs in-place hide, for the same
+// labelling FBTL renders internally
+import { getConditionBehavior, CONDITION_BEHAVIOR_LABELS } from "@sonata-innovations/fiber-fbtl";
+
+// The add-question palette's vocabulary (for options.allowedQuestionTypes)
+import { QUESTION_TYPES } from "@sonata-innovations/fiber-fbtl";
+
+// Screen model resolution (same rule the store applies)
+import { resolveScreenModel } from "@sonata-innovations/fiber-fbtl";
 
 // Types
-import type { FBTLProps, SaveState, FBTLStoreState } from "@sonata-innovations/fiber-fbtl";
+import type {
+  FBTLProps, FBTLOptions, QuestionType, ConditionBehavior, ScreenModel, ScreenModelOption,
+  SaveState, FBTLStoreState,
+} from "@sonata-innovations/fiber-fbtl";
 import type {
   Flow, FlowScreen, Component, FlowMetadata, FlowConfiguration, ComponentProperties,
   ThemeConfig, NavigationConfig, ControlsConfig,
@@ -1460,7 +1542,7 @@ type ThemeConfig = {
   text?: string;
   border?: string;
   radius?: string; // CSS length, e.g. "8px"
-  fontFamily?: string; // CSS font-family stack
+  fontFamily?: string | FontFamilyConfig; // CSS stack, or a font FBRE loads itself
   error?: string;
   success?: string;
   warning?: string;
@@ -1510,6 +1592,13 @@ function ThemePanel() {
 
 - `FBTL_KNOBS` — `background, surface, text, border, radius, fontFamily, error`.
 - `FBT_KNOBS` — the above plus `success, warning` (callout-only colors).
+
+The font knob is a plain text field: it edits a CSS stack, not a font file. If
+the theme it is editing carries a loadable font (`fontFamily` as
+`{ family, src }` — see [Loading a brand font](../features/fbre-theming.md#loading-a-brand-font)),
+the field shows the stack that config resolves to, and editing it rewrites the
+stack while **keeping the sources**. Clearing the knob drops the whole key,
+sources included.
 
 Pick the set that matches what your preview can actually show. Note the
 **built-in preview adapts**: when `knobs` includes `success`/`warning`, the
@@ -2094,7 +2183,7 @@ Flow
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `mode` | `FlowModeType` | `"standard"` | `"standard"` or `"conversational"` — conversational mode centers content, auto-advances on selection, and Enter-advances on text inputs |
-| `theme` | `ThemeConfig` | — | `{ color?, colorScheme?, style?, background?, surface?, text?, border?, radius?, fontFamily?, error?, success?, warning? }` — visual theme settings (palette knobs + preset) |
+| `theme` | `ThemeConfig` | — | `{ color?, colorScheme?, style?, background?, surface?, text?, border?, radius?, fontFamily?, error?, success?, warning? }` — visual theme settings (palette knobs + preset). `fontFamily` is a CSS stack string **or** `{ family, src }` for a font FBRE loads itself |
 | `navigation` | `NavigationConfig` | — | `{ transition?, allowInvalidTransition? }` — screen navigation settings |
 | `controls` | `ControlsConfig` | — | `{ show?, layout?, showStepper?, stepperStyle? }` — navigation controls settings |
 | `confirmation` | `ConfirmationConfig` | — | `{ show?, title?, body? }` — terminal thank-you screen (see [Confirmation Screen](../integration/fbre.md#confirmation-screen)) |
@@ -2319,10 +2408,39 @@ The theme has two layers: `colorScheme` + `style` pick built-in presets (the see
 | `text`       | `string`        | No       | Primary text color (`--fbre-text`); derives secondary/placeholder/label    |
 | `border`     | `string`        | No       | Border/rule color (`--fbre-border`); derives hover/light/subtle            |
 | `radius`     | `string`        | No       | Corner radius, any CSS length (`--fbre-radius`), e.g. `"3px"`               |
-| `fontFamily` | `string`        | No       | Font family stack (`--fbre-font`)                                           |
+| `fontFamily` | `string \| FontFamilyConfig` | No | Font family (`--fbre-font`). See [FontFamilyConfig](#fontfamilyconfig)   |
 | `error`      | `string`        | No       | Error state color (`--fbre-error`)                                          |
 | `success`    | `string`        | No       | Success state color (`--fbre-success`)                                      |
 | `warning`    | `string`        | No       | Warning state color (`--fbre-warning`)                                      |
+
+#### FontFamilyConfig
+
+A plain string is a CSS stack and nothing more: the form renders in that family only if the host page already loaded it, and falls back to `system-ui` otherwise — silently, and to something that looks approximately fine. Passing an object instead gives the renderer the sources, and FBRE registers the faces in the owning document itself.
+
+That matters most where the host cannot patch around it. FBRE is designed to mount inside a shadow root, and `@font-face` rules declared inside a shadow root's stylesheet are never registered — faces resolve at document level only.
+
+| Field    | Type               | Required | Description                                                        |
+| -------- | ------------------ | -------- | ------------------------------------------------------------------ |
+| `family` | `string`           | Yes      | CSS family name, used for both the `@font-face` and the token value |
+| `src`    | `FontSource[]`     | No       | Shorthand for a single regular face. Merged with `faces`            |
+| `faces`  | `FontFaceConfig[]` | No       | Additional faces — a second weight, an italic                       |
+| `stack`  | `string`           | No       | Full stack written to `--fbre-font`. Defaults to the family plus a system fallback |
+
+`FontSource` is `{ url, format? }`; `FontFaceConfig` is `{ src, weight?, style?, display?, unicodeRange? }`.
+
+```json
+{
+  "fontFamily": {
+    "family": "Brand Sans",
+    "src": [{ "url": "https://cdn.example.com/brand.woff2", "format": "woff2" }],
+    "faces": [
+      { "src": [{ "url": "https://cdn.example.com/brand-bold.woff2", "format": "woff2" }], "weight": "700" }
+    ]
+  }
+}
+```
+
+See [FBRE Theming Guide → Loading a brand font](../features/fbre-theming.md#loading-a-brand-font).
 
 #### Style Types
 
@@ -3101,7 +3219,7 @@ References are supported in the following component properties:
 
 ==============================================================================
 # FILE: features/confirmation-screen.md
-# APPLIES TO: @sonata-innovations/fiber-fbre@^3.3, @sonata-innovations/fiber-fbt@^2.2
+# APPLIES TO: @sonata-innovations/fiber-fbre@^3.3, @sonata-innovations/fiber-fbt@^2.2, @sonata-innovations/fiber-shared@^1.0
 # READ WHEN: Configuring the post-submit thank-you screen: config.confirmation, dynamic ${...} content, and the onFlowComplete return contract.
 ==============================================================================
 
@@ -3163,6 +3281,23 @@ In **local and remote modes** it renders **only** when `show` is not `false` **a
 
 > In FBT, the reference picker inserts field/calculation UUIDs for you. Context keys aren't in the picker yet — type `${key}` by hand for those. Resolved values are HTML-escaped (safe against injection).
 
+### Building your own picker
+
+Writing `"Thanks, ${...}!"` means knowing a component uuid, so a host app that offers its own picker ends up walking the flow to build the list. `resolvableReferences` does that walk once, in the order above, so a picker cannot drift from what the renderer will actually resolve:
+
+```ts
+import { resolvableReferences } from "@sonata-innovations/fiber-shared";
+
+const refs = resolvableReferences(flow, {
+  // Context keys can't be discovered from the flow — name the ones you pass.
+  contextKeys: ["support_email"],
+});
+// [{ uuid, label, kind: "calculation" | "field" | "context",
+//    componentType?, parentType?, screenUUID?, screenLabel? }, …]
+```
+
+Entries come back in resolution order — calculations, then fields in document order, then context keys — so the first match a picker offers is the one that wins at render time. Display-only components (headings, paragraphs, dividers) are omitted: they never contribute a value, so `${their-uuid}` resolves to nothing. Fields inside a group or repeater are included and carry `parentType`. Pass `exclude` to keep a field from being offered a reference to itself.
+
 ## Deciding *when* it shows: the `onFlowComplete` contract
 
 The confirmation appears when `onFlowComplete` settles. Its return value drives the behavior:
@@ -3214,6 +3349,7 @@ Fill in name + email and submit: the demo simulates a ~1.2s server round-trip (s
 ## Exports & schema
 
 - Types: `ConfirmationConfig`, `ConfirmationResult` — exported from `@sonata-innovations/fiber-fbre` (and `@sonata-innovations/fiber-types`).
+- Reference list: `resolvableReferences`, and the `ResolvableReference` / `ReferenceKind` types — exported from `@sonata-innovations/fiber-shared`.
 - Schema: [`flow-schema.md` → ConfirmationConfig](../schema/flow-schema.md#confirmationconfig).
 - Integration reference: [FBRE Integration Guide → Confirmation Screen](../integration/fbre.md#confirmation-screen).
 
@@ -3668,7 +3804,7 @@ From FBT's perspective there is nothing special about server-stored definitions:
 ==============================================================================
 # FILE: features/fbre-theming.md
 # APPLIES TO: @sonata-innovations/fiber-fbre@^3.3
-# READ WHEN: Theming FBRE-rendered forms: colorScheme presets, palette knobs, raw --fbre-* token overrides, precedence model, full token catalog.
+# READ WHEN: Theming FBRE-rendered forms: colorScheme presets, palette knobs, loading a brand font, raw --fbre-* token overrides, precedence model, full token catalog.
 ==============================================================================
 
 # FBRE Theming Guide
@@ -3764,10 +3900,51 @@ Each knob sets a **primary token** and **derives** the related tokens from it, s
 | `text` | `--fbre-text` | `--fbre-text-secondary/-placeholder/-disabled`, `--fbre-label` |
 | `border` | `--fbre-border` | `--fbre-border-hover/-light/-subtle` |
 | `radius` | `--fbre-radius` | — |
-| `fontFamily` | `--fbre-font` | — |
+| `fontFamily` | `--fbre-font` | — (see [Loading a brand font](#loading-a-brand-font)) |
 | `error` | `--fbre-error` | `--fbre-error-light` |
 | `success` | `--fbre-success` | `--fbre-success-bg`, `--fbre-success-border` |
 | `warning` | `--fbre-warning` | `--fbre-warning-bg`, `--fbre-warning-border` |
+
+### Loading a brand font
+
+`fontFamily` is a CSS family *string*. Setting it changes which family the form asks for; it does not make that family available. If no matching `@font-face` is registered in the document, the browser falls back to `system-ui` — quietly, and to something that looks approximately fine, which is why this failure tends to go unreported rather than get fixed.
+
+The host cannot always fix it from outside, either. FBRE is designed to mount inside a **shadow root**, and `@font-face` rules declared inside a shadow root's stylesheet are **not registered at all** — faces resolve at document level only. So the one place a customer-facing form actually runs is the place where injecting a stylesheet the way you inject the FBRE stylesheet (`adoptedStyleSheets`, see the [shadow-root section](../integration/fbre.md#mounting-inside-a-shadow-root)) does not work for fonts.
+
+To have FBRE load the font itself, give `fontFamily` an object instead of a string:
+
+```tsx
+<FBRE
+  flow={flow}
+  theme={{
+    fontFamily: {
+      family: "Brand Sans",
+      src: [{ url: "https://cdn.example.com/brand.woff2", format: "woff2" }],
+      faces: [
+        { src: [{ url: "https://cdn.example.com/brand-bold.woff2", format: "woff2" }], weight: "700" },
+      ],
+    },
+  }}
+  onFlowComplete={done}
+/>
+```
+
+FBRE registers those faces against the **owning document** of the element it mounted into — which is the host document even from inside a shadow root — and writes `"Brand Sans", system-ui, …` to `--fbre-font`. Because Fiber owns both halves, the family string and the loaded face cannot drift apart. Set `stack` to control the fallback chain explicitly.
+
+Registration is idempotent per document, so several FBRE instances sharing a page register each face once. A face that fails to fetch is reported but never thrown: the form renders in the fallback stack, exactly as it would have before, so a bad font URL cannot take a form down. A later render retries it.
+
+**Calling it yourself.** FBRE does this on mount, which means the first paint can happen before the face is ready. To register earlier — or against a document FBRE has not mounted into yet — call the helper directly:
+
+```ts
+import { ensureFontLoaded } from "@sonata-innovations/fiber-fbre";
+
+// Before rendering, or at app boot with the tenant's theme
+await ensureFontLoaded(theme, document);
+```
+
+It no-ops for a theme with no font, for a plain family string (that font is the host page's job), and where the FontFace API is unavailable. `fontFamilyStack(theme.fontFamily)` returns the stack FBRE writes, if you need to match it elsewhere in your UI.
+
+**A plain string is still correct** when the host page already loads the font — a self-hosted `@font-face` in the app's own CSS, or a Google Fonts `<link>`. Use the object form when the theme is data (a tenant picking their brand font) rather than something the app was built with.
 
 ### How derivation works
 

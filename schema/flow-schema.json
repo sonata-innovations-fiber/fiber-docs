@@ -70,8 +70,11 @@
           "description": "Corner radius as a CSS length (--fbre-radius), e.g. '3px'."
         },
         "fontFamily": {
-          "type": "string",
-          "description": "Font family stack (--fbre-font)."
+          "description": "Font family (--fbre-font). A plain CSS stack string uses whatever font the host page already provides; an object additionally carries the sources FBRE registers itself via ensureFontLoaded, which is what makes a brand font work inside a shadow root.",
+          "oneOf": [
+            { "type": "string" },
+            { "$ref": "#/$defs/FontFamilyConfig" }
+          ]
         },
         "error": {
           "type": "string",
@@ -93,6 +96,73 @@
       }
     },
 
+    "FontSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["url"],
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "Where the font file is served from."
+        },
+        "format": {
+          "type": "string",
+          "description": "CSS format() hint, e.g. 'woff2'."
+        }
+      }
+    },
+    "FontFaceConfig": {
+      "type": "object",
+      "description": "One @font-face — a single weight/style of the family.",
+      "additionalProperties": false,
+      "required": ["src"],
+      "properties": {
+        "src": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/FontSource" },
+          "minItems": 1
+        },
+        "weight": {
+          "type": "string",
+          "description": "CSS font-weight: '400', '700', or a variable range like '100 900'."
+        },
+        "style": {
+          "type": "string",
+          "enum": ["normal", "italic", "oblique"]
+        },
+        "display": {
+          "type": "string",
+          "enum": ["auto", "block", "swap", "fallback", "optional"]
+        },
+        "unicodeRange": { "type": "string" }
+      }
+    },
+    "FontFamilyConfig": {
+      "type": "object",
+      "description": "A brand font the renderer can load, rather than a family name it can only hope the host page already has.",
+      "additionalProperties": false,
+      "required": ["family"],
+      "properties": {
+        "family": {
+          "type": "string",
+          "description": "CSS family name, used for both the @font-face and the token value."
+        },
+        "src": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/FontSource" },
+          "description": "Shorthand for a single regular face. Merged with faces."
+        },
+        "faces": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/FontFaceConfig" },
+          "description": "Additional faces — a second weight, an italic."
+        },
+        "stack": {
+          "type": "string",
+          "description": "Full CSS stack written to --fbre-font. Defaults to the family plus a system fallback."
+        }
+      }
+    },
     "NavigationConfig": {
       "type": "object",
       "description": "Screen navigation settings.",
