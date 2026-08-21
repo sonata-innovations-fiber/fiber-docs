@@ -1,8 +1,8 @@
 ---
 title: FlowData Schema
 applies-to:
-  - "@sonata-innovations/fiber-types@^2.2"
-  - "@sonata-innovations/fiber-fbre@^3.3"
+  - "@sonata-innovations/fiber-types@^3.0"
+  - "@sonata-innovations/fiber-fbre@^4.0"
 read-when: "Consuming FlowData output from FBRE: structure, per-type value shapes, exclusion rules, containers, calculations."
 ---
 

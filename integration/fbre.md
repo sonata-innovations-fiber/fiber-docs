@@ -1,7 +1,7 @@
 ---
 title: FBRE Integration Guide
 applies-to:
-  - "@sonata-innovations/fiber-fbre@^3.3"
+  - "@sonata-innovations/fiber-fbre@^4.0"
 read-when: "Embedding the render engine in a parent app: props and modes, onFlowComplete contract, confirmation screen, store access, events, theming, pre-populating data."
 ---
 
@@ -39,7 +39,6 @@ function App() {
 | `onFlowComplete` | `(data: FlowData) => void \| ConfirmationResult \| Promise<void \| ConfirmationResult>` | Yes | — | Called when user completes the last screen. See [Confirmation Screen](#confirmation-screen) |
 | `data` | `FlowData` | No | `undefined` | Pre-populated form data. **Not reactive** — applied only when the flow loads; changing `data` alone does nothing (see Pitfalls) |
 | `screenIndex` | `number` | No | `0` | Controlled screen index |
-| `mode` | `FlowModeType` | No | — | `"standard"` or `"conversational"` — overrides `flow.config.mode` |
 | `theme` | `ThemeConfig` | No | — | Override theme settings (merged over `flow.config.theme`) |
 | `navigation` | `NavigationConfig` | No | — | Override navigation settings (merged over `flow.config.navigation`) |
 | `controls` | `ControlsConfig` | No | — | Override controls settings (merged over `flow.config.controls`) |
@@ -73,7 +72,6 @@ Remote mode fetches the flow from a Fiber API server. Pass `flowId` and `apiEndp
 | `apiKey` | `string` | No | — | API key for authentication |
 | `data` | `FlowData` | No | `undefined` | Pre-populated form data (not reactive — see Pitfalls) |
 | `screenIndex` | `number` | No | `0` | Controlled screen index |
-| `mode` | `FlowModeType` | No | — | `"standard"` or `"conversational"` — overrides the fetched flow's `config.mode` |
 | `theme` | `ThemeConfig` | No | — | Override theme settings |
 | `navigation` | `NavigationConfig` | No | — | Override navigation settings |
 | `controls` | `ControlsConfig` | No | — | Override controls settings |
@@ -100,7 +98,8 @@ Server-driven mode delegates all logic (conditions, validation, screen transitio
 | `sessionEndpoint` | `string` | Yes | — | Session API endpoint |
 | `flowId` | `string` | Yes | — | Flow ID to start a session with |
 | `apiKey` | `string` | No | — | API key for authentication |
-| `theme` | `ThemeConfig` | No | — | Override theme settings |
+| `theme` | `ThemeConfig` | No | — | Override theme settings (merged over the session's `config.theme`) |
+| `navigation` | `NavigationConfig` | No | — | Override navigation settings, e.g. the advance flags (merged over the session's `config.navigation`) |
 | `context` | `Record<string, string \| boolean \| number>` | No | — | External context sent to the server at session start |
 | `onFlowComplete` | `(data: any) => void` | Yes | — | Called on session completion |
 | `onScreenChange` | `(screenNumber: number) => void` | No | — | Called on screen navigation (note: receives screen number, not index + data) |
@@ -111,31 +110,59 @@ In server-driven mode, the `context` is sent to the server in the `POST /public/
 
 On a successful completion, server-driven mode resets the submit button and renders a terminal [confirmation screen](#confirmation-screen) — the flow's configured `config.confirmation` message when present, otherwise a generic "Thank you". An explicit `config.confirmation.show: false` renders nothing. `onFlowComplete` still fires with the server result, so a parent that wants its own post-completion UI can unmount or replace the component from that handler.
 
-## Conversational Mode
+## Focused Presentation
 
-Optimized one-question-per-screen experience. Set via JSX prop or flow config:
+There is no presentation mode. The look is the **style**, and the advance behaviors are **navigation flags** — three ordinary settings you can mix freely.
 
 ```tsx
-// Via JSX prop (overrides flow config)
-<FBRE flow={myFlow} mode="conversational" onFlowComplete={handleComplete} />
-
-// Via flow config
+// Via flow config — the usual place
 const flow = {
   ...myFlow,
-  config: { ...myFlow.config, mode: "conversational" }
+  config: {
+    ...myFlow.config,
+    theme: { style: "centered-minimal" },
+    navigation: { transition: "scaleFade", autoAdvance: true },
+  },
 };
 <FBRE flow={flow} onFlowComplete={handleComplete} />
 
-// Server-driven mode
+// Via JSX props — merged over the flow's own config
+<FBRE
+  flow={myFlow}
+  theme={{ style: "centered-minimal" }}
+  navigation={{ transition: "scaleFade", autoAdvance: true }}
+  onFlowComplete={handleComplete}
+/>
+
+// Server-driven — the session carries theme and navigation, so a focused
+// flow renders correctly with no extra props at all
 <FBRE
   sessionEndpoint="https://api.example.com/api/v1/public/sessions"
   flowId="flow-id"
-  mode="conversational"
   onFlowComplete={handleComplete}
 />
 ```
 
-Conversational mode vertically centers content, auto-advances after single-select choices (~500ms), advances on Enter for text inputs, and animates component entry. Styles partition by mode: standard mode uses `clean`, `outlined`, `refined-clean`, `airy-clean`, `soft-outlined`, `defined-outlined`; conversational mode has four dedicated styles — `centered-minimal`, `stacked-cards`, `soft-float`, `bold-statement`. FlowData output is unchanged by mode.
+Four of the ten styles — `centered-minimal`, `stacked-cards`, `soft-float`, `bold-statement` — form the **focused family**: they vertically center content in a narrow column, animate component entry, and enlarge tap targets and type. The other six are the **form family**. The vocabulary is flat: any style is valid on any flow, and FBRE derives the family itself, emitting it as `data-style-family` alongside `data-style`.
+
+```ts
+import { FOCUSED_STYLES, styleFamily } from "@sonata-innovations/fiber-fbre";
+
+styleFamily("soft-float"); // "focused"
+```
+
+Auto-advance and Enter-to-advance are independent of the style:
+
+| Setting | Default | Behavior |
+| --- | --- | --- |
+| `navigation.autoAdvance` | `false` | Advance ~500ms after a single-select choice (`radio`, `yesNo`, `cardSelect`, `dropDown`) |
+| `navigation.advanceOnEnter` | `true` | Advance when Enter is pressed in an `inputText` / `inputNumber` |
+
+Both only ever fire on a screen with **exactly one visible input**, never on the last screen, and never on an invalid screen. Enter-to-advance additionally stands down inside an open popup, so Enter in the colour picker's hex field commits the value instead of skipping the screen. FlowData output is unchanged by any of this.
+
+See [Style Families](../features/style-families.md) for the full model.
+
+> **Upgrading from FBRE 3.x.** `config.mode` and the `mode` prop are gone. A flow that had `mode: "conversational"` already carried a focused `theme.style`, so its look survives untouched; add `navigation: { autoAdvance: true }` to keep the auto-advance, which is now off by default. Enter-to-advance is now on for every flow, focused or not.
 
 ## Confirmation Screen
 

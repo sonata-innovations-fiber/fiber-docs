@@ -1,7 +1,7 @@
 ---
 title: Flow JSON Quick Reference
 applies-to:
-  - "@sonata-innovations/fiber-types@^2.2"
+  - "@sonata-innovations/fiber-types@^3.0"
 read-when: "Constructing or interpreting Flow JSON: structure, component types and value types, options, conditions, validation, widths, inline markup. For exhaustive per-property detail, use flow-schema.md instead."
 ---
 
@@ -35,9 +35,8 @@ Flow
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `mode` | `FlowModeType` | `"standard"` | `"standard"` or `"conversational"` — conversational mode centers content, auto-advances on selection, and Enter-advances on text inputs |
 | `theme` | `ThemeConfig` | — | `{ color?, colorScheme?, style?, background?, surface?, text?, border?, radius?, fontFamily?, error?, success?, warning? }` — visual theme settings (palette knobs + preset). `fontFamily` is a CSS stack string **or** `{ family, src }` for a font FBRE loads itself |
-| `navigation` | `NavigationConfig` | — | `{ transition?, allowInvalidTransition? }` — screen navigation settings |
+| `navigation` | `NavigationConfig` | — | `{ transition?, allowInvalidTransition?, autoAdvance?, advanceOnEnter? }` — screen navigation settings. `autoAdvance` (default `false`) advances ~500ms after a single-select choice; `advanceOnEnter` (default `true`) advances on Enter in a single-line input. Both only fire on a screen with exactly one visible input |
 | `controls` | `ControlsConfig` | — | `{ show?, layout?, showStepper?, stepperStyle? }` — navigation controls settings |
 | `confirmation` | `ConfirmationConfig` | — | `{ show?, title?, body? }` — terminal thank-you screen (see [Confirmation Screen](../integration/fbre.md#confirmation-screen)) |
 | `summary` | `boolean` | `false` | Show summary screen before completion |

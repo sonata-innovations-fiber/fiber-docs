@@ -154,6 +154,7 @@ Deep dives on individual capabilities.
 - [Confirmation ("Thank You") Screen](features/confirmation-screen.md) — Configuring the post-submit thank-you screen: config.confirmation, dynamic ${...} content, and the onFlowComplete return contract.
 - [Custom Presets & Templates (FBT)](features/custom-presets-and-templates.md) — Extending FBT's pool with custom presets/templates: data-based vs factory definitions, icon catalog, collision rules, server-stored definitions.
 - [FBRE Theming Guide](features/fbre-theming.md) — Theming FBRE-rendered forms: colorScheme presets, palette knobs, loading a brand font, raw --fbre-* token overrides, precedence model, full token catalog.
+- [Style Families & Advance Behaviors](features/style-families.md) — Choosing a form style, understanding the focused presentation, or turning auto-advance / Enter-to-advance on and off. Also: migrating off config.mode.
 
 ## Example flows
 

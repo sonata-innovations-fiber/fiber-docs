@@ -1,7 +1,7 @@
 ---
 title: Theme Editor Integration Guide
 applies-to:
-  - "@sonata-innovations/fiber-theme-editor@^1.0"
+  - "@sonata-innovations/fiber-theme-editor@^2.0"
 read-when: "Embedding the plug-and-play theming widget: controlled value contract, knob sets, defaults, modal pattern, passing the theme to FBRE/FBT/FBTL."
 ---
 
@@ -15,9 +15,9 @@ No prior Fiber knowledge assumed.
 
 - **Package:** `@sonata-innovations/fiber-theme-editor` (public npm, scoped).
 - **What it is:** a controlled React widget for editing a Fiber form's theme —
-  mode, light/dark scheme, accent color, style, and every palette token — beside
-  a **live FBRE preview** that renders a real form with the chosen theme.
-- **Controlled value:** `{ mode, theme }` (see _Contract_). You own the state.
+  light/dark scheme, accent color, style, and every palette token — beside a
+  **live FBRE preview** that renders a real form with the chosen theme.
+- **Controlled value:** `{ theme }` (see _Contract_). You own the state.
 - **Renders real FBRE** for its preview, so it shares your app's FBRE instance
   via peer dependencies (it does not bundle its own).
 - **Two stylesheets required:** the editor's and FBRE's (see _Styles_).
@@ -50,22 +50,26 @@ but the preview pane looks unstyled.
 ## Contract
 
 The editor edits the **theme slice of a Fiber flow's configuration**. Its value
-is `{ mode, theme }`:
+is `{ theme }`:
 
 ```ts
 type ThemeEditorValue = {
-  mode: FlowModeType; // "standard" | "conversational"
   theme: ThemeConfig; // the palette / scheme / style knobs
 };
 ```
 
-`mode` lives on `FlowConfiguration.mode`; `theme` lives on
-`FlowConfiguration.theme`. After editing, splice the result back into your flow:
+`theme` lives on `FlowConfiguration.theme`. After editing, splice the result back
+into your flow:
 
 ```ts
 flow.config.theme = value.theme;
-flow.config.mode = value.mode;
 ```
+
+> **Upgrading from 1.x.** The value and the props no longer carry `mode` —
+> `FlowConfiguration.mode` no longer exists. Drop the `mode` prop, drop
+> `value.mode`, and stop writing `flow.config.mode`. The style a flow already
+> uses carries its own presentation. See
+> [Style Families](../features/style-families.md).
 
 `ThemeConfig` is sparse — set only the knobs you want to override; unset knobs
 fall through to the `colorScheme`/`style` preset that FBRE applies at render:
@@ -89,8 +93,8 @@ type ThemeConfig = {
 
 ## Minimal Setup
 
-The widget is fully controlled — hold `{ mode, theme }` in your own state and
-pass `onChange` straight through:
+The widget is fully controlled — hold `{ theme }` in your own state and pass
+`onChange` straight through:
 
 ```tsx
 import { useState } from "react";
@@ -103,13 +107,10 @@ import "@sonata-innovations/fiber-fbre/styles";
 
 function ThemePanel() {
   const [value, setValue] = useState<ThemeEditorValue>({
-    mode: "conversational",
     theme: { colorScheme: "light" },
   });
 
-  return (
-    <ThemeEditor mode={value.mode} theme={value.theme} onChange={setValue} />
-  );
+  return <ThemeEditor theme={value.theme} onChange={setValue} />;
 }
 ```
 
@@ -117,9 +118,8 @@ function ThemePanel() {
 
 | Prop          | Type                               | Default          | Notes                                                                               |
 | ------------- | ---------------------------------- | ---------------- | ----------------------------------------------------------------------------------- |
-| `mode`        | `FlowModeType`                     | —                | Required. Gates the style dropdown and the preview render.                          |
 | `theme`       | `ThemeConfig`                      | —                | Required. Sparse; unset knobs fall through to the preset.                           |
-| `onChange`    | `(next: ThemeEditorValue) => void` | —                | Required. Fires on every change with the full `{ mode, theme }`.                    |
+| `onChange`    | `(next: ThemeEditorValue) => void` | —                | Required. Fires on every change with the full `{ theme }`.                          |
 | `defaultTab`  | `"settings" \| "palette"`          | `"settings"`     | Which pane is open on mount.                                                        |
 | `knobs`       | `ThemeKnob[]`                      | full set         | Which palette-tab knobs to expose. Use `FBTL_KNOBS` / `FBT_KNOBS`.                   |
 | `defaults`    | `ThemeConfig`                      | FBRE light/dark  | Baseline shown as placeholder/swatch for unset knobs, and merged under the preview. |
@@ -155,20 +155,21 @@ palette. The values you pass are also merged **under** `theme` in the preview, s
 a knob you haven't overridden renders at your baseline. The emitted value stays
 sparse — `defaults` is a display + preview baseline, never written into `theme`.
 
-### Style options (mode-filtered)
+### Style options
 
-The style dropdown is filtered by `mode`:
+All ten styles are always selectable — the vocabulary is flat. The dropdown
+groups them by family purely for legibility:
 
-- **standard:** `clean`, `outlined`, `refined-clean`, `airy-clean`,
-  `soft-outlined`, `defined-outlined`
-- **conversational:** `centered-minimal`, `stacked-cards`, `soft-float`,
+- **Form:** `clean`, `outlined`, `refined-clean`, `airy-clean`, `soft-outlined`,
+  `defined-outlined`
+- **Focused:** `centered-minimal`, `stacked-cards`, `soft-float`,
   `bold-statement`
 
-Switching mode reconciles `style`: if the current style is unset or invalid in
-the new mode, it is set to that mode's first option — so a mode switch always
-writes a concrete `style` into the emitted theme (de-sparsifying that one knob).
-The exported `reconcileStyle(mode, style?)` and `styleOptionsForMode(mode)`
-helpers do this if you need them outside the widget.
+The focused four add a centered narrow column, animated entry and larger targets
+on top of their own look. Nothing gates or reconciles the list any more: the
+exported `STYLE_OPTIONS` array is exactly what the widget renders, and
+`styleFamily()` from `fiber-types` is the source of truth for the grouping. See
+[Style Families](../features/style-families.md).
 
 ## Integration Pattern — "Change theme" button + modal
 
@@ -191,7 +192,6 @@ import "@sonata-innovations/fiber-fbre/styles";
 function Editor({ flow, onFlowChange }) {
   const [themeOpen, setThemeOpen] = useState(false);
   const [themeValue, setThemeValue] = useState<ThemeEditorValue>({
-    mode: "conversational",
     theme: { colorScheme: "light", style: "centered-minimal" },
   });
 
@@ -209,7 +209,6 @@ function Editor({ flow, onFlowChange }) {
           <div onClick={(e) => e.stopPropagation()} role="dialog">
             <button onClick={() => setThemeOpen(false)}>Done</button>
             <ThemeEditor
-              mode={themeValue.mode}
               theme={themeValue.theme}
               onChange={setThemeValue}
               knobs={FBTL_KNOBS}
@@ -225,11 +224,11 @@ function Editor({ flow, onFlowChange }) {
 Notes from this reference integration:
 
 - **Persist the theme in the flow.** The theme belongs in `flow.config`. When you
-  save/emit, merge it in: `{ ...emittedFlow, config: { ...emittedFlow.config, mode: themeValue.mode, theme: themeValue.theme } }`.
-- **FBTL previews conversational-only.** It ignores `mode` for its own preview
-  (it always renders conversational), but `mode` still matters for the emitted
-  flow and for the editor's own preview. Default the editor to `conversational`
-  and a conversational `style` when targeting FBTL.
+  save/emit, merge it in: `{ ...emittedFlow, config: { ...emittedFlow.config, theme: themeValue.theme } }`.
+- **FBTL previews the flow's own style.** Its preview pane honours whatever
+  `theme.style` the flow carries, so the editor and the preview agree by
+  construction. FBTL's own defaults fill in `centered-minimal`, so defaulting the
+  editor to a focused style keeps the two in step.
 - **The editor and the consumer share FBRE.** Because FBRE is a peer dependency,
   the editor's preview and your `<FBTL>`/`<FBRE>` use the same instance — no
   duplication, no version drift, provided you load `fbre/styles` once.
@@ -238,7 +237,7 @@ Notes from this reference integration:
 
 ```tsx
 // Render the live form with the chosen theme (live override):
-<FBRE flow={flow} mode={themeValue.mode} theme={themeValue.theme} />
+<FBRE flow={flow} theme={themeValue.theme} />
 
 // FBTL also accepts a ThemeConfig for its preview pane:
 <FBTL flow={flow} onChange={setFlow} theme={themeValue.theme} />
@@ -256,7 +255,7 @@ flow, persist the editor's output into the flow config:
 ```tsx
 const themedFlow = {
   ...flow,
-  config: { ...flow.config, mode: themeValue.mode, theme: themeValue.theme },
+  config: { ...flow.config, theme: themeValue.theme },
 };
 ```
 
@@ -275,13 +274,8 @@ export { LIGHT_THEME_DEFAULTS, DARK_THEME_DEFAULTS, resolveThemeDefaults };
 // In-widget glossary copy
 export { buildGlossary, SETTINGS_GLOSSARY, KNOB_GLOSSARY };
 
-// Style dropdown helpers
-export {
-  STANDARD_STYLE_OPTIONS,
-  CONVERSATIONAL_STYLE_OPTIONS,
-  styleOptionsForMode,
-  reconcileStyle,
-};
+// The style dropdown's option list (all ten, in picker order)
+export { STYLE_OPTIONS };
 
 // Default preview flow
 export { buildPreviewFlow, defaultPreviewFlow };
@@ -303,12 +297,13 @@ export type {
 
 1. **Missing `fbre/styles`** — preview renders unstyled. Import it once.
 2. **Treating the editor as uncontrolled** — it has no internal theme state; if
-   you don't feed `onChange` back into `theme`/`mode`, nothing updates.
+   you don't feed `onChange` back into `theme`, nothing updates.
 3. **Peer deps not installed** — `fiber-fbre` and `fiber-types` must be present
    in the consuming app; they are peers, not bundled.
 4. **Expecting `theme` to be fully populated** — it's sparse. Read effective
    values from the preview/render, not from `theme` (unset knobs are absent).
 5. **Wrong knob set for the preview** — exposing `success`/`warning` with a
    preview that has no callouts gives dead controls; use `FBTL_KNOBS` there.
-6. **Mode/style mismatch with FBTL** — FBTL renders conversational; pick a
-   conversational `style` (e.g. `centered-minimal`) for a faithful preview.
+6. **Still passing `mode`** — the prop and the `mode` half of the value were
+   removed in 2.0 along with `FlowConfiguration.mode`. TypeScript flags the
+   extra prop; the fix is to delete it, not to reintroduce the field.

@@ -1,7 +1,7 @@
 ---
 title: Flow JSON Schema Reference
 applies-to:
-  - "@sonata-innovations/fiber-types@^2.2"
+  - "@sonata-innovations/fiber-types@^3.0"
 read-when: "Exhaustive per-property reference for Flow JSON: every component type, property, condition, validation rule, calculation, and config field. For a compact overview use flow-quick-reference.md."
 ---
 
@@ -44,7 +44,6 @@ Runtime configuration for the flow, organized into semantic groups.
 
 | Field        | Type               | Required | Description                          |
 | ------------ | ------------------ | -------- | ------------------------------------ |
-| `mode`       | `FlowModeType`     | No       | Form presentation mode. See [Conversational Mode](#conversational-mode) |
 | `theme`      | `ThemeConfig`      | No       | Visual theme settings                |
 | `navigation` | `NavigationConfig` | No       | Screen navigation settings           |
 | `controls`   | `ControlsConfig`   | No       | Navigation controls settings         |
@@ -101,7 +100,9 @@ See [FBRE Theming Guide → Loading a brand font](../features/fbre-theming.md#lo
 
 #### Style Types
 
-**Standard mode styles** (6):
+Ten values, one flat vocabulary. Any style may be used on any flow.
+
+**Form family** (6):
 
 | Value | Description |
 | --- | --- |
@@ -112,7 +113,7 @@ See [FBRE Theming Guide → Loading a brand font](../features/fbre-theming.md#lo
 | `"soft-outlined"` | Full-border 8px radius with shadow-ring focus |
 | `"defined-outlined"` | Filled-background inputs with top-accent groups |
 
-**Conversational mode styles** (4):
+**Focused family** (4):
 
 | Value | Description |
 | --- | --- |
@@ -121,7 +122,9 @@ See [FBRE Theming Guide → Loading a brand font](../features/fbre-theming.md#lo
 | `"soft-float"` | Pill-shaped options (24px radius) with shadow lift on hover, rounded inputs and buttons |
 | `"bold-statement"` | 2px borders, 700-weight 24px headers, inverted selection (dark fill + white text), filled input backgrounds |
 
-Each style has a default stepper visual (see `stepperStyle`). When switching form mode in FBT, the style auto-switches to the first style of the target mode.
+The four focused styles additionally share a presentation treatment — vertical centering, a narrow column, staggered component entry, enlarged tap targets and bolder type. That shared half is the **focused family**; see [Style Families](#style-families).
+
+Each style has a default stepper visual (see `stepperStyle`).
 
 ### NavigationConfig
 
@@ -129,6 +132,8 @@ Each style has a default stepper visual (see `stepperStyle`). When switching for
 | ------------------------ | ---------------------- | -------- | --------------------------------------------------------------------------- |
 | `transition`             | `ScreenTransitionType` | No       | Screen transition animation type. See [Screen Transitions](#screen-transitions) |
 | `allowInvalidTransition` | `boolean`              | No       | Allow navigating forward even when the screen has validation errors         |
+| `autoAdvance`            | `boolean`              | No       | Advance ~500ms after a single-select choice. Default `false`. See [Advance Behaviors](#advance-behaviors) |
+| `advanceOnEnter`         | `boolean`              | No       | Advance when Enter is pressed in a single-line input. Default `true`. See [Advance Behaviors](#advance-behaviors) |
 
 ### ControlsConfig
 
@@ -153,42 +158,71 @@ A terminal "thank you" screen shown after the flow is submitted (once `onFlowCom
 
 ---
 
-## Conversational Mode
+## Style Families
 
-Set `config.mode` to `"conversational"` to transform FBRE into a one-question-per-screen experience optimized for completion rates.
+The ten `FlowStyleType` values are a flat vocabulary — any style is valid on any
+flow — but four of them share a presentation treatment. That shared half is a
+**family**, derived from the style itself:
 
-**`FlowModeType`**: `"standard"` | `"conversational"` (default: `"standard"`)
-
-### Behaviors
-
-| Behavior | Description |
+| Family | Styles |
 | --- | --- |
-| **Vertical centering** | Content is vertically and horizontally centered within the viewport |
-| **Auto-advance** | Single-select components (`radio`, `yesNo`, `cardSelect`, `dropDown`) advance to the next screen ~500ms after selection. Multi-select (`checkbox`, `dropDownMulti`) does NOT auto-advance |
-| **Enter-to-advance** | Pressing Enter on `inputText` / `inputNumber` advances to the next screen. `inputTextArea` is excluded (Enter inserts newlines) |
+| `"form"` | `clean`, `outlined`, `refined-clean`, `airy-clean`, `soft-outlined`, `defined-outlined` |
+| `"focused"` | `centered-minimal`, `stacked-cards`, `soft-float`, `bold-statement` |
+
+The focused family adds, on top of whichever of the four styles is selected:
+
+| Treatment | Description |
+| --- | --- |
+| **Vertical centering** | Content is vertically and horizontally centered within a narrow column |
 | **Animated entry** | Components fade + scale in with staggered delays on screen transitions. Respects `prefers-reduced-motion` |
-| **Larger tap targets** | Yes/No buttons, option items, card-select cards, and input fields are enlarged for easier tapping |
+| **Larger tap targets** | Yes/No buttons, option items, card-select cards and input fields are enlarged for easier tapping |
+| **Bolder type** | Headers, labels, prompts and inputs step up in size |
 
-### Conversational styles
+The family is **never authored** — it does not appear in Flow JSON. FBRE derives
+it and emits it as `data-style-family` alongside `data-style`. `fiber-types`
+exports the derivation for builders that want to group a style picker by family:
 
-Conversational mode has 4 dedicated styles (separate from the 6 standard styles):
+```ts
+import { FOCUSED_STYLES, styleFamily } from "@sonata-innovations/fiber-types";
 
-| Style | Personality |
-| --- | --- |
-| `centered-minimal` | Thin underline inputs, bordered option cards, uppercase labels, theme-tinted hover/selected |
-| `stacked-cards` | Filled background cards with left accent bar, keyboard shortcut badges (A, B, C, D) on options |
-| `soft-float` | Pill-shaped options with shadow lift on hover, rounded inputs and buttons |
-| `bold-statement` | Heavy borders, bold typography, inverted selection (dark fill + white text) |
+styleFamily("bold-statement"); // "focused"
+styleFamily("clean");          // "form"
+styleFamily(undefined);        // "form"
+```
 
-When switching to conversational mode in FBT, the style auto-switches to `"centered-minimal"` and the transition to `"scaleFade"`.
+Because the family derives from `theme.style`, presentation travels with the
+theme through every render path — local, remote and server-driven alike.
+
+---
+
+## Advance Behaviors
+
+Auto-advance and Enter-to-advance are independent `navigation` flags. They are
+**not** tied to a style or a family: a `clean` form with one question per screen
+gets Enter-to-advance, and a `bold-statement` flow only auto-advances if it asks
+to.
+
+| Flag | Default | Behavior |
+| --- | --- | --- |
+| `navigation.autoAdvance` | `false` | Single-select components (`radio`, `yesNo`, `cardSelect`, `dropDown`) advance to the next screen ~500ms after selection. Multi-select (`checkbox`, `dropDownMulti`) never auto-advances |
+| `navigation.advanceOnEnter` | `true` | Pressing Enter in an `inputText` / `inputNumber` advances to the next screen. `inputTextArea` is excluded (Enter inserts newlines) |
+
+`autoAdvance` defaults off because a form that moves without a click is
+surprising and shifts content ~500ms after a selection. `advanceOnEnter`
+defaults on because Enter-to-advance is an ordinary form convention.
 
 ### Guards
 
-- Auto-advance does **not** fire on the last screen
-- Auto-advance does **not** fire if the screen fails validation
-- Auto-advance respects condition-hidden screens (skips them)
-- Auto-advance does **not** fire during an active transition
-- Enter-to-advance validates the screen before advancing
+Both behaviors share the same guards, and they are not configurable:
+
+- Neither fires on a screen with **more than one visible input** — a shared
+  screen behaves like a normal form so later components aren't skipped
+- Neither fires on the last screen (so Enter can never submit)
+- Neither fires if the screen fails validation
+- Both respect condition-hidden screens (they skip them)
+- Auto-advance does not fire during an active transition
+- Enter-to-advance does not fire inside an open popup (date picker, colour
+  picker, dropdown panel) — the overlay keeps its Enter
 
 ---
 

@@ -1,8 +1,8 @@
 ---
 title: Custom Presets & Templates (FBT)
 applies-to:
-  - "@sonata-innovations/fiber-fbt@^2.2"
-  - "@sonata-innovations/fiber-types@^2.2"
+  - "@sonata-innovations/fiber-fbt@^3.0"
+  - "@sonata-innovations/fiber-types@^3.0"
 read-when: "Extending FBT's pool with custom presets/templates: data-based vs factory definitions, icon catalog, collision rules, server-stored definitions."
 ---
 

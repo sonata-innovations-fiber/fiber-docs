@@ -1,7 +1,7 @@
 ---
 title: FBT Integration Guide
 applies-to:
-  - "@sonata-innovations/fiber-fbt@^2.2"
+  - "@sonata-innovations/fiber-fbt@^3.0"
 read-when: "Embedding the full builder in a parent app: getting the Flow out, composable layout, custom presets and templates."
 ---
 

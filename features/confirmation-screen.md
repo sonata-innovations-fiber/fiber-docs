@@ -1,9 +1,9 @@
 ---
 title: Confirmation ("Thank You") Screen
 applies-to:
-  - "@sonata-innovations/fiber-fbre@^3.3"
-  - "@sonata-innovations/fiber-fbt@^2.2"
-  - "@sonata-innovations/fiber-shared@^1.0"
+  - "@sonata-innovations/fiber-fbre@^4.0"
+  - "@sonata-innovations/fiber-fbt@^3.0"
+  - "@sonata-innovations/fiber-shared@^1.2"
 read-when: "Configuring the post-submit thank-you screen: config.confirmation, dynamic ${...} content, and the onFlowComplete return contract."
 ---
 

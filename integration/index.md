@@ -1,10 +1,10 @@
 ---
 title: Fiber Integration — Start Here
 applies-to:
-  - "@sonata-innovations/fiber-fbre@^3.3"
-  - "@sonata-innovations/fiber-fbt@^2.2"
-  - "@sonata-innovations/fiber-fbtl@^2.2"
-  - "@sonata-innovations/fiber-theme-editor@^1.0"
+  - "@sonata-innovations/fiber-fbre@^4.0"
+  - "@sonata-innovations/fiber-fbt@^3.0"
+  - "@sonata-innovations/fiber-fbtl@^3.0"
+  - "@sonata-innovations/fiber-theme-editor@^2.0"
 read-when: "Choosing which Fiber packages to install, or looking for the right integration guide."
 ---
 
@@ -53,10 +53,11 @@ Peer dependencies (`react`, `react-dom`) must already be in your project. Transi
 
 | Guide | Read when |
 |-------|-----------|
-| [FBRE — Render Engine](fbre.md) | Rendering flows: props and modes (local / remote / server-driven / conversational), `onFlowComplete`, confirmation screen, store access, theming, pre-population |
+| [FBRE — Render Engine](fbre.md) | Rendering flows: props and integration modes (local / remote / server-driven), `onFlowComplete`, confirmation screen, store access, theming, pre-population |
 | [FBT — Builder UI](fbt.md) | Embedding the full builder: getting the Flow out, composable layout, custom presets and templates |
 | [FBTL — Lite Builder UI](fbtl.md) | Embedding the lite builder: controlled-component contract, scope, save lifecycle, normalizing generator-authored flows |
 | [Theme Editor](theme-editor.md) | Embedding the plug-and-play theming widget |
+| [Style Families](../features/style-families.md) | Choosing a style, the focused presentation, and the auto-advance / Enter-to-advance flags |
 | [Flow JSON Quick Reference](../schema/flow-quick-reference.md) | Constructing or interpreting Flow JSON: component types, conditions, validation, options, widths |
 | [Flow Schema (full)](../schema/flow-schema.md) | Complete schema reference for every component type and property |
 | [Fiber Concepts](../fiber-concepts.md) | Conceptual model: Flow, Screen, Component, FlowData, condition and validation systems |

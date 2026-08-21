@@ -1,12 +1,12 @@
 ---
 title: Fiber Concepts
 applies-to:
-  - "@sonata-innovations/fiber-types@^2.2"
-  - "@sonata-innovations/fiber-shared@^1.0"
-  - "@sonata-innovations/fiber-fbre@^3.3"
-  - "@sonata-innovations/fiber-fbt@^2.2"
-  - "@sonata-innovations/fiber-fbtl@^2.2"
-  - "@sonata-innovations/fiber-theme-editor@^1.0"
+  - "@sonata-innovations/fiber-types@^3.0"
+  - "@sonata-innovations/fiber-shared@^1.2"
+  - "@sonata-innovations/fiber-fbre@^4.0"
+  - "@sonata-innovations/fiber-fbt@^3.0"
+  - "@sonata-innovations/fiber-fbtl@^3.0"
+  - "@sonata-innovations/fiber-theme-editor@^2.0"
 read-when: "First contact with Fiber: the Flow/Screen/Component model, FlowData, builders vs render engine, conditions/validation/calculations concepts."
 ---
 
@@ -88,7 +88,6 @@ The optional `config` object controls runtime behavior, organized into semantic 
 
 | Group | Setting | Purpose |
 |-------|---------|---------|
-| _(flat)_ | `mode` | Presentation mode: `"standard"` (default) or `"conversational"` (one question at a time) |
 | `theme` | `color` | Primary accent color (CSS value) |
 | `theme` | `colorScheme` | Built-in palette preset: `"light"` (default) or `"dark"` (replaces the former `darkMode` boolean) |
 | `theme` | `style` | Visual style (`"clean"`, `"outlined"`, …) |
@@ -97,6 +96,8 @@ The optional `config` object controls runtime behavior, organized into semantic 
 | `theme` | `error` / `success` / `warning` | Semantic state color knobs |
 | `navigation` | `transition` | Screen transition animation type |
 | `navigation` | `allowInvalidTransition` | Allow navigating past screens with validation errors |
+| `navigation` | `autoAdvance` | Advance ~500ms after a single-select choice (default off) |
+| `navigation` | `advanceOnEnter` | Advance on Enter in a single-line input (default on) |
 | `controls` | `show` | Show/hide built-in next/back buttons |
 | `controls` | `layout` | Controls layout (`"default"`, `"centered"`, `"inline-full"`, or `"stacked"`) |
 | `controls` | `showStepper` | Show/hide the step indicator |
@@ -451,9 +452,17 @@ FBRE accepts a flow through one of three mutually exclusive prop shapes:
 2. **Remote flow** — `<FBRE flowId="..." apiEndpoint="..." />`. FBRE fetches a published flow from a Fiber server and renders it client-side. All evaluation (conditions, validation, calculations) still happens in the browser.
 3. **Server-driven** — `<FBRE flowId="..." sessionEndpoint="..." />`. FBRE starts a session and receives one screen at a time; the server evaluates conditions and validation between screens (using the same `fiber-shared` engines) and assembles the final FlowData. The full flow definition never reaches the client — useful for sensitive branching logic and server-side integrations between screens.
 
-### Conversational Mode
+### Style Families
 
-Setting `config.mode: "conversational"` (or the FBRE `mode` prop) renders the flow one question at a time in a chat-like presentation instead of the standard screen-per-page layout. Same Flow JSON, same condition/validation/FlowData behavior — only the presentation changes. FBTL authors flows in this shape by default.
+`theme.style` is one flat vocabulary of ten values, but four of them — `centered-minimal`, `stacked-cards`, `soft-float`, `bold-statement` — share a presentation treatment: a vertically centered narrow column, staggered component entry, enlarged tap targets and bolder type. That shared half is the **focused** family; the other six are the **form** family.
+
+The family is derived from the style, never authored — it does not appear in Flow JSON. FBRE emits it as `data-style-family`, and `fiber-types` exports `styleFamily()` / `FOCUSED_STYLES` for builders grouping a style picker. Because it derives from `theme.style`, the presentation travels with the theme through every render path, server-driven included.
+
+A focused style is a *look*. Pacing — how many questions land on a screen — is a property of the flow's structure (see FBTL's `screenModel`), and the two advance behaviors below are separate `navigation` flags. FBTL authors focused-styled flows by default.
+
+### Advance Behaviors
+
+`navigation.autoAdvance` (default `false`) advances ~500ms after a single-select choice; `navigation.advanceOnEnter` (default `true`) advances when Enter is pressed in a single-line input. Both only ever fire on a screen with exactly one visible input, never on the last screen, and never on an invalid screen. Neither is tied to a style — a `clean` form with one question per screen advances on Enter just like a focused one.
 
 ### Confirmation Screen
 

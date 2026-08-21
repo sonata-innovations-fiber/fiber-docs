@@ -1,7 +1,6 @@
 {
 	"uuid": "flow-theme-reference-001",
 	"config": {
-		"mode": "standard",
 		"theme": {
 			"colorScheme": "light",
 			"style": "soft-outlined",
@@ -56,8 +55,8 @@
 					"uuid": "comp-overview-mode",
 					"type": "callout",
 					"properties": {
-						"title": "Mode  —  config.mode",
-						"value": "This is where mode is set. Standard renders a multi-field form; Conversational shows one question at a time. This flow uses \"standard\".",
+						"title": "Style family  —  derived from config.theme.style",
+						"value": "The ten styles fall into two families. The six form styles suit a multi-field page; the four focused styles (centered-minimal, stacked-cards, soft-float, bold-statement) add a centered column, animated entry and larger targets. The family is derived, never authored. This flow uses \"soft-outlined\", a form style.",
 						"variant": "neutral"
 					}
 				},

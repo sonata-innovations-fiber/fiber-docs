@@ -90,7 +90,7 @@
         },
         "style": {
           "type": "string",
-          "description": "Visual style for form elements. Standard mode styles: 'clean' = bottom-border inputs with uppercase labels (default). 'outlined' = full-border inputs with normal-case labels. 'refined-clean' = animated underline focus with left-accent groups. 'airy-clean' = spacious layout with tinted focus and pill buttons. 'soft-outlined' = full-border 8px radius with shadow-ring focus. 'defined-outlined' = filled-background inputs with top-accent groups. Conversational mode styles: 'centered-minimal' = thin underline inputs, bordered option cards, uppercase labels. 'stacked-cards' = filled background cards with left accent, keyboard shortcut badges. 'soft-float' = pill-shaped options with shadow lift on hover. 'bold-statement' = heavy borders, bold typography, inverted selection. Each style has a default stepper visual (see stepperStyle).",
+          "description": "Visual style for form elements. One flat vocabulary of ten, in two families. Form family: 'clean' = bottom-border inputs with uppercase labels (default). 'outlined' = full-border inputs with normal-case labels. 'refined-clean' = animated underline focus with left-accent groups. 'airy-clean' = spacious layout with tinted focus and pill buttons. 'soft-outlined' = full-border 8px radius with shadow-ring focus. 'defined-outlined' = filled-background inputs with top-accent groups. Focused family (adds vertical centering, staggered component entry, enlarged tap targets and bolder type): 'centered-minimal' = thin underline inputs, bordered option cards, uppercase labels. 'stacked-cards' = filled background cards with left accent, keyboard shortcut badges. 'soft-float' = pill-shaped options with shadow lift on hover. 'bold-statement' = heavy borders, bold typography, inverted selection. Each style has a default stepper visual (see stepperStyle).",
           "enum": ["clean", "outlined", "refined-clean", "airy-clean", "soft-outlined", "defined-outlined", "centered-minimal", "stacked-cards", "soft-float", "bold-statement"]
         }
       }
@@ -175,6 +175,14 @@
         "allowInvalidTransition": {
           "type": "boolean",
           "description": "Allow navigating forward even when the screen has validation errors."
+        },
+        "autoAdvance": {
+          "type": "boolean",
+          "description": "Advance to the next screen ~500ms after a single-select choice (radio, yesNo, cardSelect, dropDown). Default false. Only fires on a screen with exactly one visible input."
+        },
+        "advanceOnEnter": {
+          "type": "boolean",
+          "description": "Advance to the next screen when Enter is pressed in a single-line input (inputText, inputNumber). Default true. Never fires in a textarea, inside an open popup, on the last screen, on an invalid screen, or on a screen with more than one visible input."
         }
       }
     },
@@ -227,11 +235,6 @@
       "type": "object",
       "description": "Runtime configuration for the flow.",
       "properties": {
-        "mode": {
-          "type": "string",
-          "description": "Form presentation mode. 'standard' = multi-field screens (default). 'conversational' = one-question-per-screen, vertically centered, with auto-advance on selection, Enter-to-advance on text inputs, and animated component entry.",
-          "enum": ["standard", "conversational"]
-        },
         "theme": { "$ref": "#/$defs/ThemeConfig" },
         "navigation": { "$ref": "#/$defs/NavigationConfig" },
         "controls": { "$ref": "#/$defs/ControlsConfig" },

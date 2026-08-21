@@ -8,7 +8,7 @@ Generated from https://github.com/sonata-innovations/fiber-docs. Each section be
 
 ==============================================================================
 # FILE: fiber-concepts.md
-# APPLIES TO: @sonata-innovations/fiber-types@^2.2, @sonata-innovations/fiber-shared@^1.0, @sonata-innovations/fiber-fbre@^3.3, @sonata-innovations/fiber-fbt@^2.2, @sonata-innovations/fiber-fbtl@^2.2, @sonata-innovations/fiber-theme-editor@^1.0
+# APPLIES TO: @sonata-innovations/fiber-types@^3.0, @sonata-innovations/fiber-shared@^1.2, @sonata-innovations/fiber-fbre@^4.0, @sonata-innovations/fiber-fbt@^3.0, @sonata-innovations/fiber-fbtl@^3.0, @sonata-innovations/fiber-theme-editor@^2.0
 # READ WHEN: First contact with Fiber: the Flow/Screen/Component model, FlowData, builders vs render engine, conditions/validation/calculations concepts.
 ==============================================================================
 
@@ -90,7 +90,6 @@ The optional `config` object controls runtime behavior, organized into semantic 
 
 | Group | Setting | Purpose |
 |-------|---------|---------|
-| _(flat)_ | `mode` | Presentation mode: `"standard"` (default) or `"conversational"` (one question at a time) |
 | `theme` | `color` | Primary accent color (CSS value) |
 | `theme` | `colorScheme` | Built-in palette preset: `"light"` (default) or `"dark"` (replaces the former `darkMode` boolean) |
 | `theme` | `style` | Visual style (`"clean"`, `"outlined"`, …) |
@@ -99,6 +98,8 @@ The optional `config` object controls runtime behavior, organized into semantic 
 | `theme` | `error` / `success` / `warning` | Semantic state color knobs |
 | `navigation` | `transition` | Screen transition animation type |
 | `navigation` | `allowInvalidTransition` | Allow navigating past screens with validation errors |
+| `navigation` | `autoAdvance` | Advance ~500ms after a single-select choice (default off) |
+| `navigation` | `advanceOnEnter` | Advance on Enter in a single-line input (default on) |
 | `controls` | `show` | Show/hide built-in next/back buttons |
 | `controls` | `layout` | Controls layout (`"default"`, `"centered"`, `"inline-full"`, or `"stacked"`) |
 | `controls` | `showStepper` | Show/hide the step indicator |
@@ -453,9 +454,17 @@ FBRE accepts a flow through one of three mutually exclusive prop shapes:
 2. **Remote flow** — `<FBRE flowId="..." apiEndpoint="..." />`. FBRE fetches a published flow from a Fiber server and renders it client-side. All evaluation (conditions, validation, calculations) still happens in the browser.
 3. **Server-driven** — `<FBRE flowId="..." sessionEndpoint="..." />`. FBRE starts a session and receives one screen at a time; the server evaluates conditions and validation between screens (using the same `fiber-shared` engines) and assembles the final FlowData. The full flow definition never reaches the client — useful for sensitive branching logic and server-side integrations between screens.
 
-### Conversational Mode
+### Style Families
 
-Setting `config.mode: "conversational"` (or the FBRE `mode` prop) renders the flow one question at a time in a chat-like presentation instead of the standard screen-per-page layout. Same Flow JSON, same condition/validation/FlowData behavior — only the presentation changes. FBTL authors flows in this shape by default.
+`theme.style` is one flat vocabulary of ten values, but four of them — `centered-minimal`, `stacked-cards`, `soft-float`, `bold-statement` — share a presentation treatment: a vertically centered narrow column, staggered component entry, enlarged tap targets and bolder type. That shared half is the **focused** family; the other six are the **form** family.
+
+The family is derived from the style, never authored — it does not appear in Flow JSON. FBRE emits it as `data-style-family`, and `fiber-types` exports `styleFamily()` / `FOCUSED_STYLES` for builders grouping a style picker. Because it derives from `theme.style`, the presentation travels with the theme through every render path, server-driven included.
+
+A focused style is a *look*. Pacing — how many questions land on a screen — is a property of the flow's structure (see FBTL's `screenModel`), and the two advance behaviors below are separate `navigation` flags. FBTL authors focused-styled flows by default.
+
+### Advance Behaviors
+
+`navigation.autoAdvance` (default `false`) advances ~500ms after a single-select choice; `navigation.advanceOnEnter` (default `true`) advances when Enter is pressed in a single-line input. Both only ever fire on a screen with exactly one visible input, never on the last screen, and never on an invalid screen. Neither is tied to a style — a `clean` form with one question per screen advances on Enter just like a focused one.
 
 ### Confirmation Screen
 
@@ -468,7 +477,7 @@ The private packages (**server**, **portal**, **hosted**) form a hosted form ser
 
 ==============================================================================
 # FILE: integration/fbre.md
-# APPLIES TO: @sonata-innovations/fiber-fbre@^3.3
+# APPLIES TO: @sonata-innovations/fiber-fbre@^4.0
 # READ WHEN: Embedding the render engine in a parent app: props and modes, onFlowComplete contract, confirmation screen, store access, events, theming, pre-populating data.
 ==============================================================================
 
@@ -506,7 +515,6 @@ function App() {
 | `onFlowComplete` | `(data: FlowData) => void \| ConfirmationResult \| Promise<void \| ConfirmationResult>` | Yes | — | Called when user completes the last screen. See [Confirmation Screen](#confirmation-screen) |
 | `data` | `FlowData` | No | `undefined` | Pre-populated form data. **Not reactive** — applied only when the flow loads; changing `data` alone does nothing (see Pitfalls) |
 | `screenIndex` | `number` | No | `0` | Controlled screen index |
-| `mode` | `FlowModeType` | No | — | `"standard"` or `"conversational"` — overrides `flow.config.mode` |
 | `theme` | `ThemeConfig` | No | — | Override theme settings (merged over `flow.config.theme`) |
 | `navigation` | `NavigationConfig` | No | — | Override navigation settings (merged over `flow.config.navigation`) |
 | `controls` | `ControlsConfig` | No | — | Override controls settings (merged over `flow.config.controls`) |
@@ -540,7 +548,6 @@ Remote mode fetches the flow from a Fiber API server. Pass `flowId` and `apiEndp
 | `apiKey` | `string` | No | — | API key for authentication |
 | `data` | `FlowData` | No | `undefined` | Pre-populated form data (not reactive — see Pitfalls) |
 | `screenIndex` | `number` | No | `0` | Controlled screen index |
-| `mode` | `FlowModeType` | No | — | `"standard"` or `"conversational"` — overrides the fetched flow's `config.mode` |
 | `theme` | `ThemeConfig` | No | — | Override theme settings |
 | `navigation` | `NavigationConfig` | No | — | Override navigation settings |
 | `controls` | `ControlsConfig` | No | — | Override controls settings |
@@ -567,7 +574,8 @@ Server-driven mode delegates all logic (conditions, validation, screen transitio
 | `sessionEndpoint` | `string` | Yes | — | Session API endpoint |
 | `flowId` | `string` | Yes | — | Flow ID to start a session with |
 | `apiKey` | `string` | No | — | API key for authentication |
-| `theme` | `ThemeConfig` | No | — | Override theme settings |
+| `theme` | `ThemeConfig` | No | — | Override theme settings (merged over the session's `config.theme`) |
+| `navigation` | `NavigationConfig` | No | — | Override navigation settings, e.g. the advance flags (merged over the session's `config.navigation`) |
 | `context` | `Record<string, string \| boolean \| number>` | No | — | External context sent to the server at session start |
 | `onFlowComplete` | `(data: any) => void` | Yes | — | Called on session completion |
 | `onScreenChange` | `(screenNumber: number) => void` | No | — | Called on screen navigation (note: receives screen number, not index + data) |
@@ -578,31 +586,59 @@ In server-driven mode, the `context` is sent to the server in the `POST /public/
 
 On a successful completion, server-driven mode resets the submit button and renders a terminal [confirmation screen](#confirmation-screen) — the flow's configured `config.confirmation` message when present, otherwise a generic "Thank you". An explicit `config.confirmation.show: false` renders nothing. `onFlowComplete` still fires with the server result, so a parent that wants its own post-completion UI can unmount or replace the component from that handler.
 
-## Conversational Mode
+## Focused Presentation
 
-Optimized one-question-per-screen experience. Set via JSX prop or flow config:
+There is no presentation mode. The look is the **style**, and the advance behaviors are **navigation flags** — three ordinary settings you can mix freely.
 
 ```tsx
-// Via JSX prop (overrides flow config)
-<FBRE flow={myFlow} mode="conversational" onFlowComplete={handleComplete} />
-
-// Via flow config
+// Via flow config — the usual place
 const flow = {
   ...myFlow,
-  config: { ...myFlow.config, mode: "conversational" }
+  config: {
+    ...myFlow.config,
+    theme: { style: "centered-minimal" },
+    navigation: { transition: "scaleFade", autoAdvance: true },
+  },
 };
 <FBRE flow={flow} onFlowComplete={handleComplete} />
 
-// Server-driven mode
+// Via JSX props — merged over the flow's own config
+<FBRE
+  flow={myFlow}
+  theme={{ style: "centered-minimal" }}
+  navigation={{ transition: "scaleFade", autoAdvance: true }}
+  onFlowComplete={handleComplete}
+/>
+
+// Server-driven — the session carries theme and navigation, so a focused
+// flow renders correctly with no extra props at all
 <FBRE
   sessionEndpoint="https://api.example.com/api/v1/public/sessions"
   flowId="flow-id"
-  mode="conversational"
   onFlowComplete={handleComplete}
 />
 ```
 
-Conversational mode vertically centers content, auto-advances after single-select choices (~500ms), advances on Enter for text inputs, and animates component entry. Styles partition by mode: standard mode uses `clean`, `outlined`, `refined-clean`, `airy-clean`, `soft-outlined`, `defined-outlined`; conversational mode has four dedicated styles — `centered-minimal`, `stacked-cards`, `soft-float`, `bold-statement`. FlowData output is unchanged by mode.
+Four of the ten styles — `centered-minimal`, `stacked-cards`, `soft-float`, `bold-statement` — form the **focused family**: they vertically center content in a narrow column, animate component entry, and enlarge tap targets and type. The other six are the **form family**. The vocabulary is flat: any style is valid on any flow, and FBRE derives the family itself, emitting it as `data-style-family` alongside `data-style`.
+
+```ts
+import { FOCUSED_STYLES, styleFamily } from "@sonata-innovations/fiber-fbre";
+
+styleFamily("soft-float"); // "focused"
+```
+
+Auto-advance and Enter-to-advance are independent of the style:
+
+| Setting | Default | Behavior |
+| --- | --- | --- |
+| `navigation.autoAdvance` | `false` | Advance ~500ms after a single-select choice (`radio`, `yesNo`, `cardSelect`, `dropDown`) |
+| `navigation.advanceOnEnter` | `true` | Advance when Enter is pressed in an `inputText` / `inputNumber` |
+
+Both only ever fire on a screen with **exactly one visible input**, never on the last screen, and never on an invalid screen. Enter-to-advance additionally stands down inside an open popup, so Enter in the colour picker's hex field commits the value instead of skipping the screen. FlowData output is unchanged by any of this.
+
+See [Style Families](../features/style-families.md) for the full model.
+
+> **Upgrading from FBRE 3.x.** `config.mode` and the `mode` prop are gone. A flow that had `mode: "conversational"` already carried a focused `theme.style`, so its look survives untouched; add `navigation: { autoAdvance: true }` to keep the auto-advance, which is now off by default. Enter-to-advance is now on for every flow, focused or not.
 
 ## Confirmation Screen
 
@@ -883,7 +919,7 @@ const checkProgress = () => {
 
 ==============================================================================
 # FILE: integration/fbt.md
-# APPLIES TO: @sonata-innovations/fiber-fbt@^2.2
+# APPLIES TO: @sonata-innovations/fiber-fbt@^3.0
 # READ WHEN: Embedding the full builder in a parent app: getting the Flow out, composable layout, custom presets and templates.
 ==============================================================================
 
@@ -1122,7 +1158,7 @@ function App() {
 
 ==============================================================================
 # FILE: integration/fbtl.md
-# APPLIES TO: @sonata-innovations/fiber-fbtl@^2.2
+# APPLIES TO: @sonata-innovations/fiber-fbtl@^3.0
 # READ WHEN: Embedding the lite builder in a parent app: controlled-component contract, scope, screen model, narrowing the palette, save lifecycle, normalizing generator-authored flows.
 ==============================================================================
 
@@ -1244,9 +1280,9 @@ FBTL's stage is paged: a divider between every card, and new cards default to st
 | `"single"` | dividers hidden | the whole flow emits as one screen |
 | `"auto"` (default) | resolves to one of the above | — |
 
-`"auto"` picks `"single"` only for a `standard`-mode flow that already fits on one screen, and `"paged"` for everything else. That restriction is deliberate: a standard-mode flow with six deliberate screens is a paged form, and collapsing it the first time the author edits anything would destroy structure the host never asked us to touch. A host that does want the collapse passes `"single"` outright.
+`"auto"` picks `"single"` only for a flow carrying a **form-family style** that already fits on one screen, and `"paged"` for everything else. The style is the proxy for "this was authored as an ordinary form" — and since FBTL's own defaults fill in `centered-minimal` (a focused style), the form family only appears when the incoming flow chose it, which keeps the rule opt-in. The restriction is deliberate: a form-styled flow with six deliberate screens is a paged form, and collapsing it the first time the author edits anything would destroy structure the host never asked us to touch. A host that does want the collapse passes `"single"` outright.
 
-**`flow.config.mode` does not decide this.** In FBRE, `mode` is presentational — `conversational` adds auto-advance and its own styling, but screens stay screens in both modes. "All on one page" is a statement about screen *count*, which is why it is a separate option. A host offering the author a "one question at a time / all on one page" choice sets both: `config.mode` for the presentation and `screenModel` for the structure.
+**Nothing in `flow.config` decides this.** `theme.style` is presentational and `navigation.autoAdvance` / `advanceOnEnter` are behavioural; screens stay screens either way. "All on one page" is a statement about screen *count*, which is why it is a separate option. A host offering the author a "one question at a time / all on one page" choice sets both: the style and advance flags for the presentation, `screenModel` for the structure.
 
 Switching the model is a rewrite, and an intentional one — it happens when the host changes the prop, not on load:
 
@@ -1264,7 +1300,8 @@ Screens in the emitted JSON are derived from **per-card break flags**, not a fix
 - A conditional question is grouped onto its trigger's screen, so it appears as an inline reveal rather than a separately gated screen.
 - Component-level conditions are promoted to screen-level `conditions` **only when the screen contains exactly one component**; on multi-component screens, conditions stay on the component. The two outcomes are visibly different to a visitor — a promoted condition skips the whole screen, a component-level one hides the question on a screen the visitor still reaches — so FBTL states which one the author is getting, on the conditional band and in the condition dialog. `getConditionBehavior` is exported if a host wants to say the same thing elsewhere.
 - On load, a multi-screen flow's boundaries are recorded as break flags, so screen structure **round-trips**. One caveat: the first screen's uuid is stable, but **non-first screens' uuids and labels are regenerated on emit** — don't key external state to them.
-- FBTL also force-fills missing config keys on load/emit: `mode: "conversational"`, `theme.style: "centered-minimal"`, `navigation.transition: "slide"`, `controls.showStepper: true`. A flow round-tripped through FBTL gains these defaults.
+- FBTL also force-fills missing config keys on load/emit: `theme.style: "centered-minimal"`, `navigation.transition: "slide"`, `navigation.autoAdvance: true`, `controls.showStepper: true`. A flow round-tripped through FBTL gains these defaults. (`mode` was one of them through 2.x; `FlowConfiguration.mode` no longer exists — see [Style Families](../features/style-families.md).)
+- Because auto-advance only fires on a screen with exactly one visible input, merging two cards onto one screen silently turns it off there. The divider says so in its tooltip when `autoAdvance` is on.
 
 ## Normalizing Generator-Authored Flows (before loading into FBTL)
 
@@ -1463,7 +1500,7 @@ import type {
 
 ==============================================================================
 # FILE: integration/theme-editor.md
-# APPLIES TO: @sonata-innovations/fiber-theme-editor@^1.0
+# APPLIES TO: @sonata-innovations/fiber-theme-editor@^2.0
 # READ WHEN: Embedding the plug-and-play theming widget: controlled value contract, knob sets, defaults, modal pattern, passing the theme to FBRE/FBT/FBTL.
 ==============================================================================
 
@@ -1477,9 +1514,9 @@ No prior Fiber knowledge assumed.
 
 - **Package:** `@sonata-innovations/fiber-theme-editor` (public npm, scoped).
 - **What it is:** a controlled React widget for editing a Fiber form's theme —
-  mode, light/dark scheme, accent color, style, and every palette token — beside
-  a **live FBRE preview** that renders a real form with the chosen theme.
-- **Controlled value:** `{ mode, theme }` (see _Contract_). You own the state.
+  light/dark scheme, accent color, style, and every palette token — beside a
+  **live FBRE preview** that renders a real form with the chosen theme.
+- **Controlled value:** `{ theme }` (see _Contract_). You own the state.
 - **Renders real FBRE** for its preview, so it shares your app's FBRE instance
   via peer dependencies (it does not bundle its own).
 - **Two stylesheets required:** the editor's and FBRE's (see _Styles_).
@@ -1512,22 +1549,26 @@ but the preview pane looks unstyled.
 ## Contract
 
 The editor edits the **theme slice of a Fiber flow's configuration**. Its value
-is `{ mode, theme }`:
+is `{ theme }`:
 
 ```ts
 type ThemeEditorValue = {
-  mode: FlowModeType; // "standard" | "conversational"
   theme: ThemeConfig; // the palette / scheme / style knobs
 };
 ```
 
-`mode` lives on `FlowConfiguration.mode`; `theme` lives on
-`FlowConfiguration.theme`. After editing, splice the result back into your flow:
+`theme` lives on `FlowConfiguration.theme`. After editing, splice the result back
+into your flow:
 
 ```ts
 flow.config.theme = value.theme;
-flow.config.mode = value.mode;
 ```
+
+> **Upgrading from 1.x.** The value and the props no longer carry `mode` —
+> `FlowConfiguration.mode` no longer exists. Drop the `mode` prop, drop
+> `value.mode`, and stop writing `flow.config.mode`. The style a flow already
+> uses carries its own presentation. See
+> [Style Families](../features/style-families.md).
 
 `ThemeConfig` is sparse — set only the knobs you want to override; unset knobs
 fall through to the `colorScheme`/`style` preset that FBRE applies at render:
@@ -1551,8 +1592,8 @@ type ThemeConfig = {
 
 ## Minimal Setup
 
-The widget is fully controlled — hold `{ mode, theme }` in your own state and
-pass `onChange` straight through:
+The widget is fully controlled — hold `{ theme }` in your own state and pass
+`onChange` straight through:
 
 ```tsx
 import { useState } from "react";
@@ -1565,13 +1606,10 @@ import "@sonata-innovations/fiber-fbre/styles";
 
 function ThemePanel() {
   const [value, setValue] = useState<ThemeEditorValue>({
-    mode: "conversational",
     theme: { colorScheme: "light" },
   });
 
-  return (
-    <ThemeEditor mode={value.mode} theme={value.theme} onChange={setValue} />
-  );
+  return <ThemeEditor theme={value.theme} onChange={setValue} />;
 }
 ```
 
@@ -1579,9 +1617,8 @@ function ThemePanel() {
 
 | Prop          | Type                               | Default          | Notes                                                                               |
 | ------------- | ---------------------------------- | ---------------- | ----------------------------------------------------------------------------------- |
-| `mode`        | `FlowModeType`                     | —                | Required. Gates the style dropdown and the preview render.                          |
 | `theme`       | `ThemeConfig`                      | —                | Required. Sparse; unset knobs fall through to the preset.                           |
-| `onChange`    | `(next: ThemeEditorValue) => void` | —                | Required. Fires on every change with the full `{ mode, theme }`.                    |
+| `onChange`    | `(next: ThemeEditorValue) => void` | —                | Required. Fires on every change with the full `{ theme }`.                          |
 | `defaultTab`  | `"settings" \| "palette"`          | `"settings"`     | Which pane is open on mount.                                                        |
 | `knobs`       | `ThemeKnob[]`                      | full set         | Which palette-tab knobs to expose. Use `FBTL_KNOBS` / `FBT_KNOBS`.                   |
 | `defaults`    | `ThemeConfig`                      | FBRE light/dark  | Baseline shown as placeholder/swatch for unset knobs, and merged under the preview. |
@@ -1617,20 +1654,21 @@ palette. The values you pass are also merged **under** `theme` in the preview, s
 a knob you haven't overridden renders at your baseline. The emitted value stays
 sparse — `defaults` is a display + preview baseline, never written into `theme`.
 
-### Style options (mode-filtered)
+### Style options
 
-The style dropdown is filtered by `mode`:
+All ten styles are always selectable — the vocabulary is flat. The dropdown
+groups them by family purely for legibility:
 
-- **standard:** `clean`, `outlined`, `refined-clean`, `airy-clean`,
-  `soft-outlined`, `defined-outlined`
-- **conversational:** `centered-minimal`, `stacked-cards`, `soft-float`,
+- **Form:** `clean`, `outlined`, `refined-clean`, `airy-clean`, `soft-outlined`,
+  `defined-outlined`
+- **Focused:** `centered-minimal`, `stacked-cards`, `soft-float`,
   `bold-statement`
 
-Switching mode reconciles `style`: if the current style is unset or invalid in
-the new mode, it is set to that mode's first option — so a mode switch always
-writes a concrete `style` into the emitted theme (de-sparsifying that one knob).
-The exported `reconcileStyle(mode, style?)` and `styleOptionsForMode(mode)`
-helpers do this if you need them outside the widget.
+The focused four add a centered narrow column, animated entry and larger targets
+on top of their own look. Nothing gates or reconciles the list any more: the
+exported `STYLE_OPTIONS` array is exactly what the widget renders, and
+`styleFamily()` from `fiber-types` is the source of truth for the grouping. See
+[Style Families](../features/style-families.md).
 
 ## Integration Pattern — "Change theme" button + modal
 
@@ -1653,7 +1691,6 @@ import "@sonata-innovations/fiber-fbre/styles";
 function Editor({ flow, onFlowChange }) {
   const [themeOpen, setThemeOpen] = useState(false);
   const [themeValue, setThemeValue] = useState<ThemeEditorValue>({
-    mode: "conversational",
     theme: { colorScheme: "light", style: "centered-minimal" },
   });
 
@@ -1671,7 +1708,6 @@ function Editor({ flow, onFlowChange }) {
           <div onClick={(e) => e.stopPropagation()} role="dialog">
             <button onClick={() => setThemeOpen(false)}>Done</button>
             <ThemeEditor
-              mode={themeValue.mode}
               theme={themeValue.theme}
               onChange={setThemeValue}
               knobs={FBTL_KNOBS}
@@ -1687,11 +1723,11 @@ function Editor({ flow, onFlowChange }) {
 Notes from this reference integration:
 
 - **Persist the theme in the flow.** The theme belongs in `flow.config`. When you
-  save/emit, merge it in: `{ ...emittedFlow, config: { ...emittedFlow.config, mode: themeValue.mode, theme: themeValue.theme } }`.
-- **FBTL previews conversational-only.** It ignores `mode` for its own preview
-  (it always renders conversational), but `mode` still matters for the emitted
-  flow and for the editor's own preview. Default the editor to `conversational`
-  and a conversational `style` when targeting FBTL.
+  save/emit, merge it in: `{ ...emittedFlow, config: { ...emittedFlow.config, theme: themeValue.theme } }`.
+- **FBTL previews the flow's own style.** Its preview pane honours whatever
+  `theme.style` the flow carries, so the editor and the preview agree by
+  construction. FBTL's own defaults fill in `centered-minimal`, so defaulting the
+  editor to a focused style keeps the two in step.
 - **The editor and the consumer share FBRE.** Because FBRE is a peer dependency,
   the editor's preview and your `<FBTL>`/`<FBRE>` use the same instance — no
   duplication, no version drift, provided you load `fbre/styles` once.
@@ -1700,7 +1736,7 @@ Notes from this reference integration:
 
 ```tsx
 // Render the live form with the chosen theme (live override):
-<FBRE flow={flow} mode={themeValue.mode} theme={themeValue.theme} />
+<FBRE flow={flow} theme={themeValue.theme} />
 
 // FBTL also accepts a ThemeConfig for its preview pane:
 <FBTL flow={flow} onChange={setFlow} theme={themeValue.theme} />
@@ -1718,7 +1754,7 @@ flow, persist the editor's output into the flow config:
 ```tsx
 const themedFlow = {
   ...flow,
-  config: { ...flow.config, mode: themeValue.mode, theme: themeValue.theme },
+  config: { ...flow.config, theme: themeValue.theme },
 };
 ```
 
@@ -1737,13 +1773,8 @@ export { LIGHT_THEME_DEFAULTS, DARK_THEME_DEFAULTS, resolveThemeDefaults };
 // In-widget glossary copy
 export { buildGlossary, SETTINGS_GLOSSARY, KNOB_GLOSSARY };
 
-// Style dropdown helpers
-export {
-  STANDARD_STYLE_OPTIONS,
-  CONVERSATIONAL_STYLE_OPTIONS,
-  styleOptionsForMode,
-  reconcileStyle,
-};
+// The style dropdown's option list (all ten, in picker order)
+export { STYLE_OPTIONS };
 
 // Default preview flow
 export { buildPreviewFlow, defaultPreviewFlow };
@@ -1765,20 +1796,21 @@ export type {
 
 1. **Missing `fbre/styles`** — preview renders unstyled. Import it once.
 2. **Treating the editor as uncontrolled** — it has no internal theme state; if
-   you don't feed `onChange` back into `theme`/`mode`, nothing updates.
+   you don't feed `onChange` back into `theme`, nothing updates.
 3. **Peer deps not installed** — `fiber-fbre` and `fiber-types` must be present
    in the consuming app; they are peers, not bundled.
 4. **Expecting `theme` to be fully populated** — it's sparse. Read effective
    values from the preview/render, not from `theme` (unset knobs are absent).
 5. **Wrong knob set for the preview** — exposing `success`/`warning` with a
    preview that has no callouts gives dead controls; use `FBTL_KNOBS` there.
-6. **Mode/style mismatch with FBTL** — FBTL renders conversational; pick a
-   conversational `style` (e.g. `centered-minimal`) for a faithful preview.
+6. **Still passing `mode`** — the prop and the `mode` half of the value were
+   removed in 2.0 along with `FlowConfiguration.mode`. TypeScript flags the
+   extra prop; the fix is to delete it, not to reintroduce the field.
 
 
 ==============================================================================
 # FILE: schema/flow-data-schema.md
-# APPLIES TO: @sonata-innovations/fiber-types@^2.2, @sonata-innovations/fiber-fbre@^3.3
+# APPLIES TO: @sonata-innovations/fiber-types@^3.0, @sonata-innovations/fiber-fbre@^4.0
 # READ WHEN: Consuming FlowData output from FBRE: structure, per-type value shapes, exclusion rules, containers, calculations.
 ==============================================================================
 
@@ -2148,7 +2180,7 @@ Note the `repeater` entry above: it has no `value` key — containers carry thei
 
 ==============================================================================
 # FILE: schema/flow-quick-reference.md
-# APPLIES TO: @sonata-innovations/fiber-types@^2.2
+# APPLIES TO: @sonata-innovations/fiber-types@^3.0
 # READ WHEN: Constructing or interpreting Flow JSON: structure, component types and value types, options, conditions, validation, widths, inline markup. For exhaustive per-property detail, use flow-schema.md instead.
 ==============================================================================
 
@@ -2182,9 +2214,8 @@ Flow
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `mode` | `FlowModeType` | `"standard"` | `"standard"` or `"conversational"` — conversational mode centers content, auto-advances on selection, and Enter-advances on text inputs |
 | `theme` | `ThemeConfig` | — | `{ color?, colorScheme?, style?, background?, surface?, text?, border?, radius?, fontFamily?, error?, success?, warning? }` — visual theme settings (palette knobs + preset). `fontFamily` is a CSS stack string **or** `{ family, src }` for a font FBRE loads itself |
-| `navigation` | `NavigationConfig` | — | `{ transition?, allowInvalidTransition? }` — screen navigation settings |
+| `navigation` | `NavigationConfig` | — | `{ transition?, allowInvalidTransition?, autoAdvance?, advanceOnEnter? }` — screen navigation settings. `autoAdvance` (default `false`) advances ~500ms after a single-select choice; `advanceOnEnter` (default `true`) advances on Enter in a single-line input. Both only fire on a screen with exactly one visible input |
 | `controls` | `ControlsConfig` | — | `{ show?, layout?, showStepper?, stepperStyle? }` — navigation controls settings |
 | `confirmation` | `ConfirmationConfig` | — | `{ show?, title?, body? }` — terminal thank-you screen (see [Confirmation Screen](../integration/fbre.md#confirmation-screen)) |
 | `summary` | `boolean` | `false` | Show summary screen before completion |
@@ -2344,7 +2375,7 @@ Text-bearing fields (including the confirmation screen's `title`/`body`) also re
 
 ==============================================================================
 # FILE: schema/flow-schema.md
-# APPLIES TO: @sonata-innovations/fiber-types@^2.2
+# APPLIES TO: @sonata-innovations/fiber-types@^3.0
 # READ WHEN: Exhaustive per-property reference for Flow JSON: every component type, property, condition, validation rule, calculation, and config field. For a compact overview use flow-quick-reference.md.
 ==============================================================================
 
@@ -2387,7 +2418,6 @@ Runtime configuration for the flow, organized into semantic groups.
 
 | Field        | Type               | Required | Description                          |
 | ------------ | ------------------ | -------- | ------------------------------------ |
-| `mode`       | `FlowModeType`     | No       | Form presentation mode. See [Conversational Mode](#conversational-mode) |
 | `theme`      | `ThemeConfig`      | No       | Visual theme settings                |
 | `navigation` | `NavigationConfig` | No       | Screen navigation settings           |
 | `controls`   | `ControlsConfig`   | No       | Navigation controls settings         |
@@ -2444,7 +2474,9 @@ See [FBRE Theming Guide → Loading a brand font](../features/fbre-theming.md#lo
 
 #### Style Types
 
-**Standard mode styles** (6):
+Ten values, one flat vocabulary. Any style may be used on any flow.
+
+**Form family** (6):
 
 | Value | Description |
 | --- | --- |
@@ -2455,7 +2487,7 @@ See [FBRE Theming Guide → Loading a brand font](../features/fbre-theming.md#lo
 | `"soft-outlined"` | Full-border 8px radius with shadow-ring focus |
 | `"defined-outlined"` | Filled-background inputs with top-accent groups |
 
-**Conversational mode styles** (4):
+**Focused family** (4):
 
 | Value | Description |
 | --- | --- |
@@ -2464,7 +2496,9 @@ See [FBRE Theming Guide → Loading a brand font](../features/fbre-theming.md#lo
 | `"soft-float"` | Pill-shaped options (24px radius) with shadow lift on hover, rounded inputs and buttons |
 | `"bold-statement"` | 2px borders, 700-weight 24px headers, inverted selection (dark fill + white text), filled input backgrounds |
 
-Each style has a default stepper visual (see `stepperStyle`). When switching form mode in FBT, the style auto-switches to the first style of the target mode.
+The four focused styles additionally share a presentation treatment — vertical centering, a narrow column, staggered component entry, enlarged tap targets and bolder type. That shared half is the **focused family**; see [Style Families](#style-families).
+
+Each style has a default stepper visual (see `stepperStyle`).
 
 ### NavigationConfig
 
@@ -2472,6 +2506,8 @@ Each style has a default stepper visual (see `stepperStyle`). When switching for
 | ------------------------ | ---------------------- | -------- | --------------------------------------------------------------------------- |
 | `transition`             | `ScreenTransitionType` | No       | Screen transition animation type. See [Screen Transitions](#screen-transitions) |
 | `allowInvalidTransition` | `boolean`              | No       | Allow navigating forward even when the screen has validation errors         |
+| `autoAdvance`            | `boolean`              | No       | Advance ~500ms after a single-select choice. Default `false`. See [Advance Behaviors](#advance-behaviors) |
+| `advanceOnEnter`         | `boolean`              | No       | Advance when Enter is pressed in a single-line input. Default `true`. See [Advance Behaviors](#advance-behaviors) |
 
 ### ControlsConfig
 
@@ -2496,42 +2532,71 @@ A terminal "thank you" screen shown after the flow is submitted (once `onFlowCom
 
 ---
 
-## Conversational Mode
+## Style Families
 
-Set `config.mode` to `"conversational"` to transform FBRE into a one-question-per-screen experience optimized for completion rates.
+The ten `FlowStyleType` values are a flat vocabulary — any style is valid on any
+flow — but four of them share a presentation treatment. That shared half is a
+**family**, derived from the style itself:
 
-**`FlowModeType`**: `"standard"` | `"conversational"` (default: `"standard"`)
-
-### Behaviors
-
-| Behavior | Description |
+| Family | Styles |
 | --- | --- |
-| **Vertical centering** | Content is vertically and horizontally centered within the viewport |
-| **Auto-advance** | Single-select components (`radio`, `yesNo`, `cardSelect`, `dropDown`) advance to the next screen ~500ms after selection. Multi-select (`checkbox`, `dropDownMulti`) does NOT auto-advance |
-| **Enter-to-advance** | Pressing Enter on `inputText` / `inputNumber` advances to the next screen. `inputTextArea` is excluded (Enter inserts newlines) |
+| `"form"` | `clean`, `outlined`, `refined-clean`, `airy-clean`, `soft-outlined`, `defined-outlined` |
+| `"focused"` | `centered-minimal`, `stacked-cards`, `soft-float`, `bold-statement` |
+
+The focused family adds, on top of whichever of the four styles is selected:
+
+| Treatment | Description |
+| --- | --- |
+| **Vertical centering** | Content is vertically and horizontally centered within a narrow column |
 | **Animated entry** | Components fade + scale in with staggered delays on screen transitions. Respects `prefers-reduced-motion` |
-| **Larger tap targets** | Yes/No buttons, option items, card-select cards, and input fields are enlarged for easier tapping |
+| **Larger tap targets** | Yes/No buttons, option items, card-select cards and input fields are enlarged for easier tapping |
+| **Bolder type** | Headers, labels, prompts and inputs step up in size |
 
-### Conversational styles
+The family is **never authored** — it does not appear in Flow JSON. FBRE derives
+it and emits it as `data-style-family` alongside `data-style`. `fiber-types`
+exports the derivation for builders that want to group a style picker by family:
 
-Conversational mode has 4 dedicated styles (separate from the 6 standard styles):
+```ts
+import { FOCUSED_STYLES, styleFamily } from "@sonata-innovations/fiber-types";
 
-| Style | Personality |
-| --- | --- |
-| `centered-minimal` | Thin underline inputs, bordered option cards, uppercase labels, theme-tinted hover/selected |
-| `stacked-cards` | Filled background cards with left accent bar, keyboard shortcut badges (A, B, C, D) on options |
-| `soft-float` | Pill-shaped options with shadow lift on hover, rounded inputs and buttons |
-| `bold-statement` | Heavy borders, bold typography, inverted selection (dark fill + white text) |
+styleFamily("bold-statement"); // "focused"
+styleFamily("clean");          // "form"
+styleFamily(undefined);        // "form"
+```
 
-When switching to conversational mode in FBT, the style auto-switches to `"centered-minimal"` and the transition to `"scaleFade"`.
+Because the family derives from `theme.style`, presentation travels with the
+theme through every render path — local, remote and server-driven alike.
+
+---
+
+## Advance Behaviors
+
+Auto-advance and Enter-to-advance are independent `navigation` flags. They are
+**not** tied to a style or a family: a `clean` form with one question per screen
+gets Enter-to-advance, and a `bold-statement` flow only auto-advances if it asks
+to.
+
+| Flag | Default | Behavior |
+| --- | --- | --- |
+| `navigation.autoAdvance` | `false` | Single-select components (`radio`, `yesNo`, `cardSelect`, `dropDown`) advance to the next screen ~500ms after selection. Multi-select (`checkbox`, `dropDownMulti`) never auto-advances |
+| `navigation.advanceOnEnter` | `true` | Pressing Enter in an `inputText` / `inputNumber` advances to the next screen. `inputTextArea` is excluded (Enter inserts newlines) |
+
+`autoAdvance` defaults off because a form that moves without a click is
+surprising and shifts content ~500ms after a selection. `advanceOnEnter`
+defaults on because Enter-to-advance is an ordinary form convention.
 
 ### Guards
 
-- Auto-advance does **not** fire on the last screen
-- Auto-advance does **not** fire if the screen fails validation
-- Auto-advance respects condition-hidden screens (skips them)
-- Auto-advance does **not** fire during an active transition
-- Enter-to-advance validates the screen before advancing
+Both behaviors share the same guards, and they are not configurable:
+
+- Neither fires on a screen with **more than one visible input** — a shared
+  screen behaves like a normal form so later components aren't skipped
+- Neither fires on the last screen (so Enter can never submit)
+- Neither fires if the screen fails validation
+- Both respect condition-hidden screens (they skip them)
+- Auto-advance does not fire during an active transition
+- Enter-to-advance does not fire inside an open popup (date picker, colour
+  picker, dropdown panel) — the overlay keeps its Enter
 
 ---
 
@@ -3219,7 +3284,7 @@ References are supported in the following component properties:
 
 ==============================================================================
 # FILE: features/confirmation-screen.md
-# APPLIES TO: @sonata-innovations/fiber-fbre@^3.3, @sonata-innovations/fiber-fbt@^2.2, @sonata-innovations/fiber-shared@^1.0
+# APPLIES TO: @sonata-innovations/fiber-fbre@^4.0, @sonata-innovations/fiber-fbt@^3.0, @sonata-innovations/fiber-shared@^1.2
 # READ WHEN: Configuring the post-submit thank-you screen: config.confirmation, dynamic ${...} content, and the onFlowComplete return contract.
 ==============================================================================
 
@@ -3376,7 +3441,7 @@ Server-driven mode falls back because the client there is frequently the entire 
 
 ==============================================================================
 # FILE: features/custom-presets-and-templates.md
-# APPLIES TO: @sonata-innovations/fiber-fbt@^2.2, @sonata-innovations/fiber-types@^2.2
+# APPLIES TO: @sonata-innovations/fiber-fbt@^3.0, @sonata-innovations/fiber-types@^3.0
 # READ WHEN: Extending FBT's pool with custom presets/templates: data-based vs factory definitions, icon catalog, collision rules, server-stored definitions.
 ==============================================================================
 
@@ -3803,7 +3868,7 @@ From FBT's perspective there is nothing special about server-stored definitions:
 
 ==============================================================================
 # FILE: features/fbre-theming.md
-# APPLIES TO: @sonata-innovations/fiber-fbre@^3.3
+# APPLIES TO: @sonata-innovations/fiber-fbre@^4.0
 # READ WHEN: Theming FBRE-rendered forms: colorScheme presets, palette knobs, loading a brand font, raw --fbre-* token overrides, precedence model, full token catalog.
 ==============================================================================
 
@@ -4104,3 +4169,216 @@ The knob form needs no `data-mode` gymnastics and no per-element selector overri
 - [Flow Schema — ThemeConfig](../schema/flow-schema.md) — the `theme` object's fields and types
 - [FBRE Integration Guide](../integration/fbre.md) — embedding FBRE in a parent app
 - `fbre/README.md` — FBRE props and a condensed theming summary
+
+
+==============================================================================
+# FILE: features/style-families.md
+# APPLIES TO: @sonata-innovations/fiber-fbre@^4.0, @sonata-innovations/fiber-types@^3.0, @sonata-innovations/fiber-fbt@^3.0, @sonata-innovations/fiber-fbtl@^3.0, @sonata-innovations/fiber-theme-editor@^2.0
+# READ WHEN: Choosing a form style, understanding the focused presentation, or turning auto-advance / Enter-to-advance on and off. Also: migrating off config.mode.
+==============================================================================
+
+# Style Families & Advance Behaviors
+
+A Fiber form's presentation is decided by one setting — `config.theme.style` —
+and its two advance behaviors by two more — `config.navigation.autoAdvance` and
+`config.navigation.advanceOnEnter`. That is the whole model. There is no
+presentation mode.
+
+> **Migrating from an earlier version?** `config.mode` (`"standard"` /
+> `"conversational"`) was removed. Jump to [Migrating off `config.mode`](#migrating-off-configmode).
+
+## The ten styles are one flat vocabulary
+
+Any style is valid on any flow. Four of them share an extra presentation
+treatment, and that shared half is called a **family**:
+
+| Family | Styles |
+| --- | --- |
+| `"form"` | `clean`, `outlined`, `refined-clean`, `airy-clean`, `soft-outlined`, `defined-outlined` |
+| `"focused"` | `centered-minimal`, `stacked-cards`, `soft-float`, `bold-statement` |
+
+On top of whichever of the four you pick, the focused family adds:
+
+| Treatment | What it does |
+| --- | --- |
+| **Vertical centering** | Content sits centered in a narrow column, falling back to top-aligned and scrollable when a screen is taller than the viewport |
+| **Animated entry** | Components fade and scale in with staggered delays. Respects `prefers-reduced-motion` |
+| **Larger tap targets** | Option items, Yes/No buttons, card-select cards and inputs are enlarged |
+| **Bolder type** | Headers, labels, prompts and inputs step up in size |
+
+Each of the four styles then applies its own look — underline inputs, filled
+cards, pill options, heavy borders — exactly as each of the six form styles
+does.
+
+### The family is derived, never authored
+
+It does not appear in Flow JSON. FBRE computes it from `theme.style` and emits
+it on the container as `data-style-family`, next to `data-style`:
+
+```html
+<div class="fbre-container" data-style="soft-float" data-style-family="focused">
+```
+
+That is what lets the ~32 shared rules live under one selector instead of a
+repeated four-way list. If you write custom CSS against a focused form, target
+`[data-style-family="focused"]` for anything that should apply to all four and
+`[data-style="…"]` for one style.
+
+`fiber-types` (and `fiber-fbre`, which re-exports it) publishes the derivation
+so a builder can group its own style picker from one list:
+
+```ts
+import { FOCUSED_STYLES, styleFamily } from "@sonata-innovations/fiber-types";
+
+styleFamily("bold-statement"); // "focused"
+styleFamily("clean");          // "form"
+styleFamily(undefined);        // "form"  — the `clean` default
+
+FOCUSED_STYLES.has("soft-float"); // true
+```
+
+### Why this matters for server-driven rendering
+
+The session protocol sends `config.theme`. Because presentation is *derived
+from* `theme.style`, a focused-styled flow renders identically whether it is
+rendered locally, fetched remotely, or served one screen at a time by a
+session — no extra field has to be carried, and none can be forgotten.
+
+## Advance behaviors
+
+Auto-advance and Enter-to-advance are independent `navigation` flags. Neither is
+tied to a style: a `clean` form with one question per screen advances on Enter,
+and a `bold-statement` flow only auto-advances if it asks to.
+
+| Flag | Default | Behavior |
+| --- | --- | --- |
+| `navigation.autoAdvance` | `false` | Advance to the next screen ~500ms after a single-select choice — `radio`, `yesNo`, `cardSelect`, `dropDown`. Multi-select (`checkbox`, `dropDownMulti`) never auto-advances |
+| `navigation.advanceOnEnter` | `true` | Advance when Enter is pressed in an `inputText` or `inputNumber`. `inputTextArea` is excluded — Enter inserts a newline there |
+
+```jsonc
+{
+  "config": {
+    "theme": { "style": "centered-minimal" },
+    "navigation": {
+      "transition": "scaleFade",
+      "autoAdvance": true,
+      "advanceOnEnter": true
+    }
+  }
+}
+```
+
+The defaults are deliberately asymmetric. A form that moves without a click is
+surprising, and shifting content and focus ~500ms after a selection carries a
+real accessibility cost — so `autoAdvance` is opt-in. Enter-to-advance is an
+ordinary form convention, so it is on.
+
+### Guards
+
+Both behaviors share the same guards. None of them are configurable — they are
+correctness guards, not policy:
+
+- Neither fires on a screen with **more than one visible input**. A shared
+  screen behaves like a normal form, so components after the first are never
+  skipped. (Conditionally hidden inputs don't count toward the total.)
+- Neither fires on the last screen — so Enter can never submit the form.
+- Neither fires when the screen fails validation.
+- Both respect condition-hidden screens, skipping to the next reachable one.
+- Auto-advance does not fire during an active screen transition.
+- Enter-to-advance stands down inside an open popup (`.fbre-popup`), so Enter
+  there commits the value rather than skipping the screen. Today this affects
+  one component: the colour picker's hex field is the only `<input>` rendered
+  inside an overlay. The date/time pickers and both dropdowns use buttons and
+  `role="option"` elements, which Enter-to-advance already ignores.
+
+The single-visible-input guard is worth designing around: turning `autoAdvance`
+on for a flow whose screens hold several questions each does nothing at all.
+Both builders say so — FBT warns on a multi-input screen tab, FBTL notes it on
+the divider that merges two cards onto one screen.
+
+## In the builders
+
+Neither builder stores a mode. Each offers a preset that writes the settings the
+focused look is made of, after which every one of them stays individually
+editable:
+
+- **FBT** — a *Focused presentation* preset in the Appearance section writes
+  `theme.style: "centered-minimal"` and `navigation: { transition: "scaleFade",
+  autoAdvance: true }`. The style picker lists all ten styles, captioned *Form*
+  and *Focused*.
+- **FBTL** — its default config already uses `centered-minimal` with
+  `autoAdvance: true`. Pacing (one question per screen vs all on one page) is a
+  separate concern there: see `screenModel` in the
+  [FBTL Integration Guide](../integration/fbtl.md#screen-model).
+- **Theme Editor** — the style dropdown lists all ten, grouped under *Form* and
+  *Focused* headings. Its value is `{ theme }`.
+
+## Migrating off `config.mode`
+
+`FlowConfiguration.mode`, the `FlowModeType` type, and FBRE's `mode` prop are
+gone. Each of `mode`'s jobs moved somewhere it belongs:
+
+| Was | Now |
+| --- | --- |
+| `mode: "conversational"` for the centered, animated presentation | the focused **style** already on the flow — nothing to set |
+| `mode: "conversational"` for auto-advance | `navigation.autoAdvance: true` |
+| `mode: "conversational"` for Enter-to-advance | `navigation.advanceOnEnter` — on by default now, for every flow |
+| `mode` deciding which styles were legal | nothing — the vocabulary is flat |
+
+### Updating a stored flow
+
+A flow that had `mode: "conversational"` already carried a focused
+`theme.style`, so **its look survives untouched**. The only behavior that
+changes is auto-advance, which is now off unless asked for:
+
+```jsonc
+// before
+{ "config": {
+    "mode": "conversational",
+    "theme": { "style": "centered-minimal" },
+    "navigation": { "transition": "scaleFade" }
+} }
+
+// after
+{ "config": {
+    "theme": { "style": "centered-minimal" },
+    "navigation": { "transition": "scaleFade", "autoAdvance": true }
+} }
+```
+
+A flow that had `mode: "standard"` (or no `mode` at all) needs only the field
+deleted. It gains Enter-to-advance on its one-question screens, which was
+previously withheld for no reason anyone could see.
+
+`mode` is not read anywhere any more, so leaving a stale `"mode"` key in stored
+JSON is inert rather than harmful — but the schema no longer describes it, and
+`npm run validate` will not vouch for it.
+
+### Updating code
+
+```diff
+-<FBRE flow={flow} mode="conversational" onFlowComplete={done} />
++<FBRE
++  flow={flow}
++  theme={{ style: "centered-minimal" }}
++  navigation={{ autoAdvance: true }}
++  onFlowComplete={done}
++/>
+```
+
+```diff
+-<ThemeEditor mode={value.mode} theme={value.theme} onChange={setValue} />
++<ThemeEditor theme={value.theme} onChange={setValue} />
+```
+
+The theme editor's `STANDARD_STYLE_OPTIONS`, `CONVERSATIONAL_STYLE_OPTIONS`,
+`styleOptionsForMode` and `reconcileStyle` exports are replaced by a single
+`STYLE_OPTIONS` array; use `styleFamily()` from `fiber-types` if you need the
+partition.
+
+## Related
+
+- [Flow Schema → Style Families](../schema/flow-schema.md#style-families)
+- [FBRE Theming Guide](fbre-theming.md) — palette tokens, brand fonts, and how a
+  style's preset interacts with the knobs
+- [FBRE Integration Guide → Focused Presentation](../integration/fbre.md#focused-presentation)

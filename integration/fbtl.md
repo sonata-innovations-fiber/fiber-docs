@@ -1,7 +1,7 @@
 ---
 title: FBTL Integration Guide
 applies-to:
-  - "@sonata-innovations/fiber-fbtl@^2.2"
+  - "@sonata-innovations/fiber-fbtl@^3.0"
 read-when: "Embedding the lite builder in a parent app: controlled-component contract, scope, screen model, narrowing the palette, save lifecycle, normalizing generator-authored flows."
 ---
 
@@ -123,9 +123,9 @@ FBTL's stage is paged: a divider between every card, and new cards default to st
 | `"single"` | dividers hidden | the whole flow emits as one screen |
 | `"auto"` (default) | resolves to one of the above | — |
 
-`"auto"` picks `"single"` only for a `standard`-mode flow that already fits on one screen, and `"paged"` for everything else. That restriction is deliberate: a standard-mode flow with six deliberate screens is a paged form, and collapsing it the first time the author edits anything would destroy structure the host never asked us to touch. A host that does want the collapse passes `"single"` outright.
+`"auto"` picks `"single"` only for a flow carrying a **form-family style** that already fits on one screen, and `"paged"` for everything else. The style is the proxy for "this was authored as an ordinary form" — and since FBTL's own defaults fill in `centered-minimal` (a focused style), the form family only appears when the incoming flow chose it, which keeps the rule opt-in. The restriction is deliberate: a form-styled flow with six deliberate screens is a paged form, and collapsing it the first time the author edits anything would destroy structure the host never asked us to touch. A host that does want the collapse passes `"single"` outright.
 
-**`flow.config.mode` does not decide this.** In FBRE, `mode` is presentational — `conversational` adds auto-advance and its own styling, but screens stay screens in both modes. "All on one page" is a statement about screen *count*, which is why it is a separate option. A host offering the author a "one question at a time / all on one page" choice sets both: `config.mode` for the presentation and `screenModel` for the structure.
+**Nothing in `flow.config` decides this.** `theme.style` is presentational and `navigation.autoAdvance` / `advanceOnEnter` are behavioural; screens stay screens either way. "All on one page" is a statement about screen *count*, which is why it is a separate option. A host offering the author a "one question at a time / all on one page" choice sets both: the style and advance flags for the presentation, `screenModel` for the structure.
 
 Switching the model is a rewrite, and an intentional one — it happens when the host changes the prop, not on load:
 
@@ -143,7 +143,8 @@ Screens in the emitted JSON are derived from **per-card break flags**, not a fix
 - A conditional question is grouped onto its trigger's screen, so it appears as an inline reveal rather than a separately gated screen.
 - Component-level conditions are promoted to screen-level `conditions` **only when the screen contains exactly one component**; on multi-component screens, conditions stay on the component. The two outcomes are visibly different to a visitor — a promoted condition skips the whole screen, a component-level one hides the question on a screen the visitor still reaches — so FBTL states which one the author is getting, on the conditional band and in the condition dialog. `getConditionBehavior` is exported if a host wants to say the same thing elsewhere.
 - On load, a multi-screen flow's boundaries are recorded as break flags, so screen structure **round-trips**. One caveat: the first screen's uuid is stable, but **non-first screens' uuids and labels are regenerated on emit** — don't key external state to them.
-- FBTL also force-fills missing config keys on load/emit: `mode: "conversational"`, `theme.style: "centered-minimal"`, `navigation.transition: "slide"`, `controls.showStepper: true`. A flow round-tripped through FBTL gains these defaults.
+- FBTL also force-fills missing config keys on load/emit: `theme.style: "centered-minimal"`, `navigation.transition: "slide"`, `navigation.autoAdvance: true`, `controls.showStepper: true`. A flow round-tripped through FBTL gains these defaults. (`mode` was one of them through 2.x; `FlowConfiguration.mode` no longer exists — see [Style Families](../features/style-families.md).)
+- Because auto-advance only fires on a screen with exactly one visible input, merging two cards onto one screen silently turns it off there. The divider says so in its tooltip when `autoAdvance` is on.
 
 ## Normalizing Generator-Authored Flows (before loading into FBTL)
 

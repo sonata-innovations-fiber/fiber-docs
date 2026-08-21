@@ -1,14 +1,13 @@
 {
 	"uuid": "flow-conv-onboarding-001",
 	"config": {
-		"mode": "conversational",
 		"theme": { "color": "#6366f1", "style": "centered-minimal" },
-		"navigation": { "transition": "scaleFade" },
+		"navigation": { "transition": "scaleFade", "autoAdvance": true },
 		"controls": { "stepperStyle": "default" }
 	},
 	"metadata": {
 		"name": "Conversational Onboarding",
-		"description": "A conversational-mode demo: one question per screen with auto-advance, enter-to-advance, and animated entry."
+		"description": "A focused-style demo: one question per screen with auto-advance, enter-to-advance, and animated entry."
 	},
 	"screens": [
 		{
