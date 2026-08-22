@@ -1368,6 +1368,10 @@ All visual values are `--fbtl-*` CSS custom properties. In the published package
 
 Component styles use **only** token variables — no hardcoded colors or pixel values.
 
+**The preview's styles are included.** FBTL's preview pane and the add-question wizard both mount a real `<FBRE>`, and FBRE ships its stylesheet separately from its JS. As of **fbtl 3.0.1** that stylesheet is bundled into `dist/fiber-fbtl.css`, so `import "@sonata-innovations/fiber-fbtl/styles"` is the only import you need — the preview renders styled out of the box. On **≤ 3.0.0** it was not: the builder chrome looked correct while the preview rendered as unstyled text, and the fix was to add `import "@sonata-innovations/fiber-fbre/styles"` yourself.
+
+This does not change anything if you *also* render `<FBRE>` in your own app to publish the finished form — that instance is yours, and it still needs its own `import "@sonata-innovations/fiber-fbre/styles"` (see [FBRE](fbre.md)). Importing it alongside FBTL's stylesheet is harmless; the rules are identical and the browser dedupes the cascade.
+
 ## Save Lifecycle (Parent-Owned)
 
 FBTL has no internal persistence. A typical debounced save:
@@ -1447,7 +1451,7 @@ Normalize at ingest, not on every `onChange` — re-running it after the user ha
 - **Advanced properties are preserved but not editable.** If an end user reports a card with a "Has custom configuration" badge and no way to change what it names, that's expected — the flow was authored (or modified) somewhere richer than FBTL. Clicking the badge says which settings those are; there is still no "Edit in FBT" affordance in v1.
 - **Switching `screenModel` rewrites screen structure.** It is not a view toggle — going to `"single"` collapses the break flags and going back restores one card per screen. Change it when the author changes their mind, not per render.
 - **Generator-authored flows may scatter conditionals.** If a conditional question shows up as its own gated screen instead of an inline reveal under its trigger, the source flow placed the conditional after an unrelated question. Run it through `normalizeConditionalOrder` (see *Normalizing Generator-Authored Flows*) before loading into FBTL.
-- **Import styles separately** (`import "@sonata-innovations/fiber-fbtl/styles"`) — styles are not bundled with the JS.
+- **Import styles separately** (`import "@sonata-innovations/fiber-fbtl/styles"`) — styles are not bundled with the JS. That one import covers the preview too from **3.0.1** on; on **≤ 3.0.0** an unstyled preview under a correct-looking builder means you also need `import "@sonata-innovations/fiber-fbre/styles"`.
 
 ## Public Exports
 
