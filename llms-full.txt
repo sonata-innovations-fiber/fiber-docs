@@ -357,7 +357,7 @@ FBRE uses CSS custom properties for theming. Parent applications can override th
 
 ### Color Scheme
 
-Selected via the `theme` prop on FBRE (`{ colorScheme: "dark" }`) or `config.theme.colorScheme` in the Flow JSON (default `"light"`). The prop takes precedence. The scheme seeds a built-in palette preset (all `--fbre-*` tokens shift to light- or dark-appropriate values); palette knobs and raw CSS-variable overrides then layer on top. Replaces the former `darkMode` boolean.
+Selected via the `theme` prop on FBRE (`{ colorScheme: "dark" }`) or `config.theme.colorScheme` in the Flow JSON (default `"light"`). The `theme` prop takes precedence over the Flow; the `themeDefaults` prop is the inverse — it supplies a value only where the Flow left one unset. The scheme seeds a built-in palette preset (all `--fbre-*` tokens shift to light- or dark-appropriate values); palette knobs and raw CSS-variable overrides then layer on top. Replaces the former `darkMode` boolean.
 
 For the full theming model — palette knobs, the override precedence, and the complete `--fbre-*` token catalog — see the [FBRE Theming Guide](features/fbre-theming.md).
 
@@ -515,7 +515,8 @@ function App() {
 | `onFlowComplete` | `(data: FlowData) => void \| ConfirmationResult \| Promise<void \| ConfirmationResult>` | Yes | — | Called when user completes the last screen. See [Confirmation Screen](#confirmation-screen) |
 | `data` | `FlowData` | No | `undefined` | Pre-populated form data. **Not reactive** — applied only when the flow loads; changing `data` alone does nothing (see Pitfalls) |
 | `screenIndex` | `number` | No | `0` | Controlled screen index |
-| `theme` | `ThemeConfig` | No | — | Override theme settings (merged over `flow.config.theme`) |
+| `themeDefaults` | `ThemeConfig` | No | — | Theme defaults merged *under* `flow.config.theme` — the flow wins where it sets a value |
+| `theme` | `ThemeConfig` | No | — | Theme overrides merged *over* `flow.config.theme` — the prop wins |
 | `navigation` | `NavigationConfig` | No | — | Override navigation settings (merged over `flow.config.navigation`) |
 | `controls` | `ControlsConfig` | No | — | Override controls settings (merged over `flow.config.controls`) |
 | `context` | `Record<string, string \| boolean \| number>` | No | — | External context for context conditions (reactive — updates trigger re-evaluation) |
@@ -524,7 +525,30 @@ function App() {
 
 > **Watching screen validity.** There is no validity callback prop. Subscribe through `storeRef` instead — `storeRef.current.subscribe(...)` and read `getScreenValidity(index)`, or select `screenValidity` directly. (An `onScreenValidationChange` prop was accepted but never invoked in any released version; it has been removed.)
 
-Config group props (`theme`, `navigation`, `controls`) are shallow-merged over the corresponding `flow.config` group. JSX prop values take precedence.
+### Config group props and precedence
+
+`navigation` and `controls` are shallow-merged **over** the corresponding `flow.config` group: the JSX prop wins.
+
+`theme` has two props, because hosts have two different needs:
+
+```
+themeDefaults  <  flow.config.theme  <  theme
+(house style)     (what the author chose)  (host override)
+```
+
+- **`themeDefaults`** — "use this unless the flow says otherwise." Reach for it when you render many flows and want a house style that individual flows can depart from.
+- **`theme`** — "use this regardless of what the flow says." Reach for it when the embedding app owns the look, or when you are previewing a theme that isn't saved to the flow yet (this is what the [theme editor](theme-editor.md) does).
+
+All merges are **key-level**, so each layer only displaces the keys it actually sets — a flow's `colorScheme` survives a `theme={{ color: "#f00" }}` that never mentions it.
+
+```tsx
+// The flow picks its own accent; everything else follows the host's house style.
+<FBRE
+  flow={flow}
+  themeDefaults={{ colorScheme: "dark", surface: "#243244", radius: "4px" }}
+  onFlowComplete={done}
+/>
+```
 
 The props above apply to **local mode** (passing a `flow` object directly). FBRE also supports two additional modes:
 
@@ -548,7 +572,8 @@ Remote mode fetches the flow from a Fiber API server. Pass `flowId` and `apiEndp
 | `apiKey` | `string` | No | — | API key for authentication |
 | `data` | `FlowData` | No | `undefined` | Pre-populated form data (not reactive — see Pitfalls) |
 | `screenIndex` | `number` | No | `0` | Controlled screen index |
-| `theme` | `ThemeConfig` | No | — | Override theme settings |
+| `themeDefaults` | `ThemeConfig` | No | — | Theme defaults merged *under* the fetched flow's `config.theme` |
+| `theme` | `ThemeConfig` | No | — | Theme overrides merged *over* the fetched flow's `config.theme` |
 | `navigation` | `NavigationConfig` | No | — | Override navigation settings |
 | `controls` | `ControlsConfig` | No | — | Override controls settings |
 | `storeRef` | `MutableRefObject<StoreApi<FBREStoreState> \| null>` | No | — | Exposes Zustand store |
@@ -574,7 +599,8 @@ Server-driven mode delegates all logic (conditions, validation, screen transitio
 | `sessionEndpoint` | `string` | Yes | — | Session API endpoint |
 | `flowId` | `string` | Yes | — | Flow ID to start a session with |
 | `apiKey` | `string` | No | — | API key for authentication |
-| `theme` | `ThemeConfig` | No | — | Override theme settings (merged over the session's `config.theme`) |
+| `themeDefaults` | `ThemeConfig` | No | — | Theme defaults merged *under* the session's `config.theme` |
+| `theme` | `ThemeConfig` | No | — | Theme overrides merged *over* the session's `config.theme` |
 | `navigation` | `NavigationConfig` | No | — | Override navigation settings, e.g. the advance flags (merged over the session's `config.navigation`) |
 | `context` | `Record<string, string \| boolean \| number>` | No | — | External context sent to the server at session start |
 | `onFlowComplete` | `(data: any) => void` | Yes | — | Called on session completion |
@@ -781,7 +807,7 @@ Three ways to theme, from least to most control: pick a **color scheme** preset,
 | `--fbre-transition-duration` | `250ms` | `250ms` | — | Screen transition timing |
 | `--fbre-transition-easing` | `cubic-bezier(0.4, 0, 0.2, 1)` | (same) | — | Screen transition curve |
 
-The color scheme is selected via the `theme` prop (`{ colorScheme: "dark" }`) or `flow.config.theme.colorScheme` (default `"light"`). The prop takes precedence. `colorScheme` seeds the built-in light/dark palette preset; it replaces the former `darkMode` boolean.
+The color scheme is selected via the `theme` prop (`{ colorScheme: "dark" }`) or `flow.config.theme.colorScheme` (default `"light"`). The `theme` prop takes precedence over the flow; `themeDefaults` loses to it (see [Config group props and precedence](#config-group-props-and-precedence)). `colorScheme` seeds the built-in light/dark palette preset; it replaces the former `darkMode` boolean.
 
 Palette knobs on `theme` (`color`, `background`, `surface`, `text`, `border`, `radius`, `fontFamily`, and the semantic `error`/`success`/`warning`) are applied automatically via inline style and override the corresponding `--fbre-*` CSS variables on top of the preset. `fontFamily` also accepts `{ family, src }` — see [Loading a brand font](../features/fbre-theming.md#loading-a-brand-font), which is the only form that works when the host page does not already load the font. Each derives its related tokens (e.g. `surface` also sets the input fills and hover/alt surfaces). Any subset may be set; unset knobs fall through to the preset. Example: `<FBRE theme={{ colorScheme: "dark", surface: "#243244", text: "#e8ede9" }} ... />`. For finer control you can still override the raw `--fbre-*` variables in your own CSS.
 
@@ -1749,6 +1775,17 @@ Notes from this reference integration:
 For FBRE the precedence is: a `theme` prop knob wins over `flow.config.theme`,
 which wins over FBRE's built-in preset. So you can either pass `theme` as a prop
 (live override) or write it into `flow.config.theme` (persisted) — or both.
+
+That ordering is what makes the live preview work: the editor's in-progress
+theme has to beat whatever the flow already has stored, or editing a flow that
+carries its own theme would show nothing. If you want the opposite — a baseline
+the flow is free to depart from — pass it as FBRE's `themeDefaults` prop
+instead, which merges *under* `flow.config.theme`. See
+[Config group props and precedence](fbre.md#config-group-props-and-precedence).
+
+Note this is distinct from the editor's own `defaults` prop, which only changes
+what the editor *displays* as the placeholder baseline for unset knobs — it does
+not affect how a flow resolves its theme at render time.
 
 **FBT is different**: it has **no `theme: ThemeConfig` prop** (its only theming
 prop is `themeColor`, a single accent color for the builder chrome itself), and
@@ -3916,6 +3953,20 @@ Palette values resolve through four layers. Each layer overrides the ones above 
 
 This is why you can set `colorScheme: "dark"` and then override just `surface` and `text` — the rest of the form stays coherent with the dark preset, and your two knobs take effect on top.
 
+### Where the knob values come from
+
+Layer 3 above is "the effective `theme`", which is itself resolved from three sources before any token is written — the flow's own theme sits in the middle:
+
+```
+themeDefaults prop  <  flow.config.theme  <  theme prop
+(host house style)     (what the author chose)  (host override)
+```
+
+- **`themeDefaults`** applies only where the flow left a key unset, so a flow that deliberately picked a palette keeps it.
+- **`theme`** wins outright. Live theme editing depends on this: [`ThemeEditor`](../integration/theme-editor.md) renders a real FBRE and feeds it the in-progress theme, which has to beat the flow's stored one for the preview to show anything.
+
+This resolution is key-level, so the three sources compose rather than replace: `themeDefaults={{ radius: "4px" }}` still applies to a flow whose theme sets only `color`.
+
 ---
 
 ## 1. Color scheme (presets)
@@ -3928,6 +3979,9 @@ This is why you can set `colorScheme: "dark"` and then override just `surface` a
 
 // Via the flow config
 const flow = { ...base, config: { ...base.config, theme: { colorScheme: "dark" } } };
+
+// Via the themeDefaults prop (a flow that sets colorScheme itself still wins)
+<FBRE flow={flow} themeDefaults={{ colorScheme: "dark" }} onFlowComplete={done} />
 ```
 
 It applies `data-mode="light" | "dark"` on the `.fbre-container` and seeds all `--fbre-*` tokens with light- or dark-appropriate values.

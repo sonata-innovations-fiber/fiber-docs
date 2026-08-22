@@ -247,6 +247,17 @@ For FBRE the precedence is: a `theme` prop knob wins over `flow.config.theme`,
 which wins over FBRE's built-in preset. So you can either pass `theme` as a prop
 (live override) or write it into `flow.config.theme` (persisted) — or both.
 
+That ordering is what makes the live preview work: the editor's in-progress
+theme has to beat whatever the flow already has stored, or editing a flow that
+carries its own theme would show nothing. If you want the opposite — a baseline
+the flow is free to depart from — pass it as FBRE's `themeDefaults` prop
+instead, which merges *under* `flow.config.theme`. See
+[Config group props and precedence](fbre.md#config-group-props-and-precedence).
+
+Note this is distinct from the editor's own `defaults` prop, which only changes
+what the editor *displays* as the placeholder baseline for unset knobs — it does
+not affect how a flow resolves its theme at render time.
+
 **FBT is different**: it has **no `theme: ThemeConfig` prop** (its only theming
 prop is `themeColor`, a single accent color for the builder chrome itself), and
 its change callback is `onFlowChange`, not `onChange`. To theme an FBT-built

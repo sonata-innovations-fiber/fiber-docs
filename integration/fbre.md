@@ -39,7 +39,8 @@ function App() {
 | `onFlowComplete` | `(data: FlowData) => void \| ConfirmationResult \| Promise<void \| ConfirmationResult>` | Yes | — | Called when user completes the last screen. See [Confirmation Screen](#confirmation-screen) |
 | `data` | `FlowData` | No | `undefined` | Pre-populated form data. **Not reactive** — applied only when the flow loads; changing `data` alone does nothing (see Pitfalls) |
 | `screenIndex` | `number` | No | `0` | Controlled screen index |
-| `theme` | `ThemeConfig` | No | — | Override theme settings (merged over `flow.config.theme`) |
+| `themeDefaults` | `ThemeConfig` | No | — | Theme defaults merged *under* `flow.config.theme` — the flow wins where it sets a value |
+| `theme` | `ThemeConfig` | No | — | Theme overrides merged *over* `flow.config.theme` — the prop wins |
 | `navigation` | `NavigationConfig` | No | — | Override navigation settings (merged over `flow.config.navigation`) |
 | `controls` | `ControlsConfig` | No | — | Override controls settings (merged over `flow.config.controls`) |
 | `context` | `Record<string, string \| boolean \| number>` | No | — | External context for context conditions (reactive — updates trigger re-evaluation) |
@@ -48,7 +49,30 @@ function App() {
 
 > **Watching screen validity.** There is no validity callback prop. Subscribe through `storeRef` instead — `storeRef.current.subscribe(...)` and read `getScreenValidity(index)`, or select `screenValidity` directly. (An `onScreenValidationChange` prop was accepted but never invoked in any released version; it has been removed.)
 
-Config group props (`theme`, `navigation`, `controls`) are shallow-merged over the corresponding `flow.config` group. JSX prop values take precedence.
+### Config group props and precedence
+
+`navigation` and `controls` are shallow-merged **over** the corresponding `flow.config` group: the JSX prop wins.
+
+`theme` has two props, because hosts have two different needs:
+
+```
+themeDefaults  <  flow.config.theme  <  theme
+(house style)     (what the author chose)  (host override)
+```
+
+- **`themeDefaults`** — "use this unless the flow says otherwise." Reach for it when you render many flows and want a house style that individual flows can depart from.
+- **`theme`** — "use this regardless of what the flow says." Reach for it when the embedding app owns the look, or when you are previewing a theme that isn't saved to the flow yet (this is what the [theme editor](theme-editor.md) does).
+
+All merges are **key-level**, so each layer only displaces the keys it actually sets — a flow's `colorScheme` survives a `theme={{ color: "#f00" }}` that never mentions it.
+
+```tsx
+// The flow picks its own accent; everything else follows the host's house style.
+<FBRE
+  flow={flow}
+  themeDefaults={{ colorScheme: "dark", surface: "#243244", radius: "4px" }}
+  onFlowComplete={done}
+/>
+```
 
 The props above apply to **local mode** (passing a `flow` object directly). FBRE also supports two additional modes:
 
@@ -72,7 +96,8 @@ Remote mode fetches the flow from a Fiber API server. Pass `flowId` and `apiEndp
 | `apiKey` | `string` | No | — | API key for authentication |
 | `data` | `FlowData` | No | `undefined` | Pre-populated form data (not reactive — see Pitfalls) |
 | `screenIndex` | `number` | No | `0` | Controlled screen index |
-| `theme` | `ThemeConfig` | No | — | Override theme settings |
+| `themeDefaults` | `ThemeConfig` | No | — | Theme defaults merged *under* the fetched flow's `config.theme` |
+| `theme` | `ThemeConfig` | No | — | Theme overrides merged *over* the fetched flow's `config.theme` |
 | `navigation` | `NavigationConfig` | No | — | Override navigation settings |
 | `controls` | `ControlsConfig` | No | — | Override controls settings |
 | `storeRef` | `MutableRefObject<StoreApi<FBREStoreState> \| null>` | No | — | Exposes Zustand store |
@@ -98,7 +123,8 @@ Server-driven mode delegates all logic (conditions, validation, screen transitio
 | `sessionEndpoint` | `string` | Yes | — | Session API endpoint |
 | `flowId` | `string` | Yes | — | Flow ID to start a session with |
 | `apiKey` | `string` | No | — | API key for authentication |
-| `theme` | `ThemeConfig` | No | — | Override theme settings (merged over the session's `config.theme`) |
+| `themeDefaults` | `ThemeConfig` | No | — | Theme defaults merged *under* the session's `config.theme` |
+| `theme` | `ThemeConfig` | No | — | Theme overrides merged *over* the session's `config.theme` |
 | `navigation` | `NavigationConfig` | No | — | Override navigation settings, e.g. the advance flags (merged over the session's `config.navigation`) |
 | `context` | `Record<string, string \| boolean \| number>` | No | — | External context sent to the server at session start |
 | `onFlowComplete` | `(data: any) => void` | Yes | — | Called on session completion |
@@ -305,7 +331,7 @@ Three ways to theme, from least to most control: pick a **color scheme** preset,
 | `--fbre-transition-duration` | `250ms` | `250ms` | — | Screen transition timing |
 | `--fbre-transition-easing` | `cubic-bezier(0.4, 0, 0.2, 1)` | (same) | — | Screen transition curve |
 
-The color scheme is selected via the `theme` prop (`{ colorScheme: "dark" }`) or `flow.config.theme.colorScheme` (default `"light"`). The prop takes precedence. `colorScheme` seeds the built-in light/dark palette preset; it replaces the former `darkMode` boolean.
+The color scheme is selected via the `theme` prop (`{ colorScheme: "dark" }`) or `flow.config.theme.colorScheme` (default `"light"`). The `theme` prop takes precedence over the flow; `themeDefaults` loses to it (see [Config group props and precedence](#config-group-props-and-precedence)). `colorScheme` seeds the built-in light/dark palette preset; it replaces the former `darkMode` boolean.
 
 Palette knobs on `theme` (`color`, `background`, `surface`, `text`, `border`, `radius`, `fontFamily`, and the semantic `error`/`success`/`warning`) are applied automatically via inline style and override the corresponding `--fbre-*` CSS variables on top of the preset. `fontFamily` also accepts `{ family, src }` — see [Loading a brand font](../features/fbre-theming.md#loading-a-brand-font), which is the only form that works when the host page does not already load the font. Each derives its related tokens (e.g. `surface` also sets the input fills and hover/alt surfaces). Any subset may be set; unset knobs fall through to the preset. Example: `<FBRE theme={{ colorScheme: "dark", surface: "#243244", text: "#e8ede9" }} ... />`. For finer control you can still override the raw `--fbre-*` variables in your own CSS.
 

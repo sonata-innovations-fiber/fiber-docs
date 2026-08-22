@@ -355,7 +355,7 @@ FBRE uses CSS custom properties for theming. Parent applications can override th
 
 ### Color Scheme
 
-Selected via the `theme` prop on FBRE (`{ colorScheme: "dark" }`) or `config.theme.colorScheme` in the Flow JSON (default `"light"`). The prop takes precedence. The scheme seeds a built-in palette preset (all `--fbre-*` tokens shift to light- or dark-appropriate values); palette knobs and raw CSS-variable overrides then layer on top. Replaces the former `darkMode` boolean.
+Selected via the `theme` prop on FBRE (`{ colorScheme: "dark" }`) or `config.theme.colorScheme` in the Flow JSON (default `"light"`). The `theme` prop takes precedence over the Flow; the `themeDefaults` prop is the inverse — it supplies a value only where the Flow left one unset. The scheme seeds a built-in palette preset (all `--fbre-*` tokens shift to light- or dark-appropriate values); palette knobs and raw CSS-variable overrides then layer on top. Replaces the former `darkMode` boolean.
 
 For the full theming model — palette knobs, the override precedence, and the complete `--fbre-*` token catalog — see the [FBRE Theming Guide](features/fbre-theming.md).
 

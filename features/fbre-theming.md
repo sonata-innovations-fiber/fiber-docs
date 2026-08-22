@@ -45,6 +45,20 @@ Palette values resolve through four layers. Each layer overrides the ones above 
 
 This is why you can set `colorScheme: "dark"` and then override just `surface` and `text` — the rest of the form stays coherent with the dark preset, and your two knobs take effect on top.
 
+### Where the knob values come from
+
+Layer 3 above is "the effective `theme`", which is itself resolved from three sources before any token is written — the flow's own theme sits in the middle:
+
+```
+themeDefaults prop  <  flow.config.theme  <  theme prop
+(host house style)     (what the author chose)  (host override)
+```
+
+- **`themeDefaults`** applies only where the flow left a key unset, so a flow that deliberately picked a palette keeps it.
+- **`theme`** wins outright. Live theme editing depends on this: [`ThemeEditor`](../integration/theme-editor.md) renders a real FBRE and feeds it the in-progress theme, which has to beat the flow's stored one for the preview to show anything.
+
+This resolution is key-level, so the three sources compose rather than replace: `themeDefaults={{ radius: "4px" }}` still applies to a flow whose theme sets only `color`.
+
 ---
 
 ## 1. Color scheme (presets)
@@ -57,6 +71,9 @@ This is why you can set `colorScheme: "dark"` and then override just `surface` a
 
 // Via the flow config
 const flow = { ...base, config: { ...base.config, theme: { colorScheme: "dark" } } };
+
+// Via the themeDefaults prop (a flow that sets colorScheme itself still wins)
+<FBRE flow={flow} themeDefaults={{ colorScheme: "dark" }} onFlowComplete={done} />
 ```
 
 It applies `data-mode="light" | "dark"` on the `.fbre-container` and seeds all `--fbre-*` tokens with light- or dark-appropriate values.
