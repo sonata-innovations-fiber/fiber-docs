@@ -37,7 +37,8 @@ FBTL is a **controlled** component. The parent always owns `flow` state; FBTL fi
 | `flow` | `Flow` | Yes | — | Current flow (controlled — parent owns state) |
 | `onChange` | `(flow: Flow) => void` | Yes | — | Fires on every mutation |
 | `storeRef` | `MutableRefObject<StoreApi<FBTLStoreState> \| null>` | No | — | Exposes the internal Zustand store (selection state, actions) to the parent |
-| `theme` | `ThemeConfig` | No | — | Passed to the preview pane |
+| `themeDefaults` | `ThemeConfig` | No | — | Passed to the preview pane, merged *under* `flow.config.theme` — the flow wins. See [Theming the preview](#theming-the-preview) |
+| `theme` | `ThemeConfig` | No | — | Passed to the preview pane, merged *over* `flow.config.theme` — the prop wins |
 | `navigation` | `NavigationConfig` | No | — | Passed to the preview pane |
 | `controls` | `ControlsConfig` | No | — | Passed to the preview pane |
 | `options` | `FBTLOptions` | No | — | Builder-UI configuration that never touches the flow — see [Screen model](#screen-model) and [Narrowing the palette](#narrowing-the-palette) |
@@ -214,6 +215,20 @@ Component styles use **only** token variables — no hardcoded colors or pixel v
 **The preview's styles are included.** FBTL's preview pane and the add-question wizard both mount a real `<FBRE>`, and FBRE ships its stylesheet separately from its JS. As of **fbtl 3.0.1** that stylesheet is bundled into `dist/fiber-fbtl.css`, so `import "@sonata-innovations/fiber-fbtl/styles"` is the only import you need — the preview renders styled out of the box. On **≤ 3.0.0** it was not: the builder chrome looked correct while the preview rendered as unstyled text, and the fix was to add `import "@sonata-innovations/fiber-fbre/styles"` yourself.
 
 This does not change anything if you *also* render `<FBRE>` in your own app to publish the finished form — that instance is yours, and it still needs its own `import "@sonata-innovations/fiber-fbre/styles"` (see [FBRE](fbre.md)). Importing it alongside FBTL's stylesheet is harmless; the rules are identical and the browser dedupes the cascade.
+
+### Theming the preview
+
+`themeDefaults`, `theme`, `navigation` and `controls` are forwarded to the preview's `<FBRE>` and follow [FBRE's precedence rules](fbre.md#config-group-props-and-precedence). For theme that means three layers:
+
+```
+themeDefaults  <  flow.config.theme  <  theme
+```
+
+Pass `themeDefaults` for a house style the author is free to depart from, `theme` to force a look regardless of what the flow says. By default the preview's accent is FBTL's own chrome blue, supplied on the defaults layer — so a flow that sets `theme.color` already overrides it, and `themeDefaults={{ color }}` replaces it for flows that don't.
+
+> **`themeDefaults.style` has no effect.** FBTL force-fills `theme.style: "centered-minimal"` into every flow's config (see [Screen model](#screen-model)), so that key is never unset and the flow always wins it. Every other theme key is honoured normally. To change the preview's style, set it on the flow or pass `theme={{ style }}`, which overrides.
+
+Requires **fbre ≥ 4.1.0**, which fbtl 3.1.0 depends on.
 
 ## Save Lifecycle (Parent-Owned)
 
