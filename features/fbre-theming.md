@@ -1,7 +1,7 @@
 ---
 title: FBRE Theming Guide
 applies-to:
-  - "@sonata-innovations/fiber-fbre@^4.0"
+  - "@sonata-innovations/fiber-fbre@^5.0"
 read-when: "Theming FBRE-rendered forms: colorScheme presets, palette knobs, loading a brand font, raw --fbre-* token overrides, precedence model, full token catalog."
 ---
 

@@ -1,7 +1,7 @@
 ---
 title: Flow JSON Schema Reference
 applies-to:
-  - "@sonata-innovations/fiber-types@^3.0"
+  - "@sonata-innovations/fiber-types@^4.0"
 read-when: "Exhaustive per-property reference for Flow JSON: every component type, property, condition, validation rule, calculation, and config field. For a compact overview use flow-quick-reference.md."
 ---
 
@@ -304,7 +304,6 @@ Properties vary by component type. All fields are optional; which ones are relev
 | Field         | Type             | Applicable Types          | Description                                                                                                                          |
 | ------------- | ---------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
 | `label`       | `string`         | All                       | Display label                                                                                                                        |
-| `required`    | `boolean`        | All input/selection types | Field must have a value to pass validation                                                                                           |
 | `placeholder` | `string`         | Text inputs               | Placeholder text when empty (dropdowns render a fixed built-in placeholder)                                                                                                          |
 | `helperText`  | `string`         | All input/selection types | Instructional text below the field                                                                                                   |
 | `tooltip`     | `string`         | All                       | Tooltip on hover/focus of info icon                                                                                                  |
@@ -349,7 +348,6 @@ Inside a repeater, formula references to sibling template UUIDs resolve to the c
 | `showLabel` | `boolean`                              | Whether to display the label                                                         |
 | `detail`    | `string`                               | Rich text description above the signature pad                                        |
 | `mode`      | `"draw"` \| `"type"` \| `"both"`      | Draw = canvas pad, Type = typed name in script font, Both = toggle between modes     |
-| `required`  | `boolean`                              | Whether a signature is required                                                      |
 | `width`     | `ComponentWidth`                       | Layout width                                                                         |
 
 Draw mode stores the signature as a base64 PNG data URL. Type mode stores the typed name as a plain string.
@@ -358,7 +356,6 @@ Draw mode stores the signature as a base64 PNG data URL. Type mode stores the ty
 
 | Field                | Type                                                        | Applicable Types                            | Description                                                                                                               |
 | -------------------- | ----------------------------------------------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `regex`              | `string`                                                    | `inputText`, `inputTextArea`                | Regular expression for validation                                                                                         |
 | `maxlength`          | `integer`                                                   | `inputText`, `inputTextArea`                | Maximum character length                                                                                                  |
 | `startAdornment`     | `string`                                                    | `inputText`, `inputNumber`                  | Text/symbol at the start of the field (e.g. `$`, `+1`)                                                                    |
 | `decimalPlaces`      | `integer`                                                   | `inputNumber`                               | When set, restricts input to a fixed number of decimal places (0-10). Uses controlled text input with keystroke filtering |
@@ -622,7 +619,7 @@ Legacy group `layout` strings (e.g. `"2: 50,50"`) must be migrated to per-child 
 
 ## Validation
 
-Components can have validation rules defined in `properties.validation`. This replaces the legacy `required` and `regex` flat properties. Legacy formats must be migrated before loading.
+Components can have validation rules defined in `properties.validation`. This is the only place validation lives: the required marker, the initial validity of a field, and the `aria-required` exposed to assistive technology are all derived from these rules. The legacy flat `required` and `regex` properties were **removed in `@sonata-innovations/fiber-types` 4.0.0** and are ignored if present. See [Removed flat properties](#removed-flat-properties).
 
 ### FlowValidationConfig
 
@@ -682,12 +679,23 @@ Components can have validation rules defined in `properties.validation`. This re
 
 When validation fails, the first failing error message is shown below the field. If multiple rules fail, an "(and N more)" indicator is appended.
 
-### Migration
+### Removed flat properties
 
-Legacy `required` and `regex` properties must be migrated to `FlowValidationConfig` before loading.:
+The flat `required` and `regex` properties were removed from the schema in
+`@sonata-innovations/fiber-types` 4.0.0. They are not read, and there is no
+auto-migration — a flow that still carries them must be converted:
 
 - `{ required: true }` → `{ validation: { rules: [{ type: "required" }] } }`
 - `{ regex: "..." }` → `{ validation: { rules: [{ type: "pattern", params: { regex: "..." } }] } }`
+
+**Until a flow is converted, an un-migrated field renders with no required
+marker and no enforcement** — it behaves as an optional field. This is silent:
+nothing throws and nothing is logged.
+
+Before 4.0.0 the two keys disagreed. FBRE drew the asterisk from the flat
+`required` property while enforcing from `validation.rules`, so a flow that
+followed this migration became enforced-but-unmarked and a flow that ignored it
+became marked-but-unenforced. Both answers now come from the rules alone.
 
 ---
 

@@ -1,7 +1,7 @@
 ---
 title: Flow JSON Quick Reference
 applies-to:
-  - "@sonata-innovations/fiber-types@^3.0"
+  - "@sonata-innovations/fiber-types@^4.0"
 read-when: "Constructing or interpreting Flow JSON: structure, component types and value types, options, conditions, validation, widths, inline markup. For exhaustive per-property detail, use flow-schema.md instead."
 ---
 

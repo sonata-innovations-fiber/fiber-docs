@@ -1,9 +1,9 @@
 ---
 title: Fiber Concepts
 applies-to:
-  - "@sonata-innovations/fiber-types@^3.0"
+  - "@sonata-innovations/fiber-types@^4.0"
   - "@sonata-innovations/fiber-shared@^1.2"
-  - "@sonata-innovations/fiber-fbre@^4.0"
+  - "@sonata-innovations/fiber-fbre@^5.0"
   - "@sonata-innovations/fiber-fbt@^3.0"
   - "@sonata-innovations/fiber-fbtl@^3.0"
   - "@sonata-innovations/fiber-theme-editor@^2.0"

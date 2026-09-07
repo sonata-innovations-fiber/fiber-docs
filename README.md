@@ -175,6 +175,7 @@ Real Flow documents, each validated against the schema on every commit. Copy one
 | [`quickstart.flow.json`](examples/quickstart.flow.json) | 1 | Contact us |
 | [`quote-builder.flow.json`](examples/quote-builder.flow.json) | 3 | Project Quote Builder |
 | [`screen-transitions.flow.json`](examples/screen-transitions.flow.json) | 4 | Screen Transitions Demo |
+| [`simple-thank-you.flow.json`](examples/simple-thank-you.flow.json) | 1 | Simple Thank You |
 | [`theme-preview.flow.json`](examples/theme-preview.flow.json) | 1 | Theme Preview |
 | [`theme-reference.flow.json`](examples/theme-reference.flow.json) | 5 | Theme Reference |
 

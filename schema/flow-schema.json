@@ -372,10 +372,6 @@
           "type": "boolean",
           "description": "When true on a 'text' component, renders as display-only (no input)."
         },
-        "required": {
-          "type": "boolean",
-          "description": "Whether the field must have a value to pass validation."
-        },
         "placeholder": {
           "type": "string",
           "description": "Placeholder text shown when the field is empty."
@@ -391,10 +387,6 @@
         "detail": {
           "type": "string",
           "description": "Rich text displayed above the component. Supports markup ([b], [i], [l]). When set, hides the label unless showLabel is true."
-        },
-        "regex": {
-          "type": "string",
-          "description": "Regular expression pattern for input validation."
         },
         "maxlength": {
           "type": "integer",

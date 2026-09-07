@@ -1,7 +1,7 @@
 ---
 title: FBRE Integration Guide
 applies-to:
-  - "@sonata-innovations/fiber-fbre@^4.0"
+  - "@sonata-innovations/fiber-fbre@^5.0"
 read-when: "Embedding the render engine in a parent app: props and modes, onFlowComplete contract, confirmation screen, store access, events, theming, pre-populating data."
 ---
 

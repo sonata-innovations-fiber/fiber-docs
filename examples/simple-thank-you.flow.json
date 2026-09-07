@@ -1,0 +1,60 @@
+{
+  "uuid": "flow-simple-thank-you",
+  "config": {
+    "theme": {
+      "color": "#2563eb",
+      "colorScheme": "light",
+      "style": "clean",
+      "radius": "6px"
+    },
+    "controls": { "show": true, "showStepper": false },
+    "summary": false,
+    "confirmation": {
+      "show": true,
+      "title": "Thank you, ${comp-name}!",
+      "body": "We've got your message and will reply to ${comp-email} within one business day."
+    }
+  },
+  "metadata": {
+    "name": "Simple Thank You",
+    "description": "A one-screen contact form with a minimal theme and a terminal thank-you screen."
+  },
+  "screens": [
+    {
+      "uuid": "screen-contact",
+      "label": "Get in touch",
+      "nextButtonLabel": "Send",
+      "components": [
+        {
+          "uuid": "comp-name",
+          "type": "inputText",
+          "properties": {
+            "label": "Your name",
+            "placeholder": "Jane Doe",
+            "validation": { "rules": [{ "type": "required" }] }
+          }
+        },
+        {
+          "uuid": "comp-email",
+          "type": "inputText",
+          "properties": {
+            "label": "Email address",
+            "inputType": "email",
+            "placeholder": "you@example.com",
+            "validation": {
+              "rules": [{ "type": "required" }, { "type": "email" }]
+            }
+          }
+        },
+        {
+          "uuid": "comp-message",
+          "type": "inputTextArea",
+          "properties": {
+            "label": "Message",
+            "placeholder": "How can we help?"
+          }
+        }
+      ]
+    }
+  ]
+}
