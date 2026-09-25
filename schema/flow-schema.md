@@ -679,6 +679,13 @@ Components can have validation rules defined in `properties.validation`. This is
 
 When validation fails, the first failing error message is shown below the field. If multiple rules fail, an "(and N more)" indicator is appended.
 
+Errors are **never shown on first view**. A field's error appears only once the visitor has
+interacted with it — in practice, once it holds a value. An untouched required field stays
+quiet; it still blocks the advance button (unless `navigation.allowInvalidTransition` is set),
+so a visitor can't skip past it. `confirm` tracks the interaction itself rather than its value,
+because unticking it clears the value — so a visitor who ticks and then unticks a required
+confirm does see the error.
+
 ### Removed flat properties
 
 The flat `required` and `regex` properties were removed from the schema in
